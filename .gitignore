@@ -1,0 +1,12 @@
+.bundle
+.sass-cache/
+*.sw[opn]
+.rvmrc
+.DS_Store
+*.zip
+*.*~
+.rsync_cache
+zeus.json
+output
+tmp
+crash.log
