@@ -18,40 +18,36 @@ Ruby's fast and simple sequel library is used to provide the connection to the
 database. This library can also be used for migrations.
 
 
-## Usage
-
-### Configuration
+## A Couch Tap Project
 
 Couch Tap requires a configuration or filter definition that will allow incoming
 document changes to be identified and dealt with.
 
+
     # The couchdb database from which to request the changes feed
-    changes "http://host:port/invoicing/" do
+    changes "http://user:pass@host:port/invoicing" do
 
       # Which database should we connect to?
-      connect "postgres://user:pass@localhost:5432/invoicing"
+      database "postgres://user:pass@localhost:5432/invoicing"
 
       # Simple automated copy, each property's value in the matching CouchDB
       # document will copied to the table field with the same name.
-      document 'type' => 'User' do
+      filter 'type' => 'User' do
         table :users
       end
 
-      document 'type' => 'Invoice' do |doc|
+      filter 'type' => 'Invoice' do
 
         table :invoices do
           # Which field should be used for the primary key?
           primary_key :id, :code
 
-          # Explicit column definition
-          column :title
-
-          # copy columns from fields with different name
+          # Copy columns from fields with different name
           column :updated_at, :updated_on
           column :created_at, :created_on
 
           # Manually set a value from document or fixed variable
-          column :date, doc['date']
+          column :date, document['date']
           column :added_at, Time.now
 
           # Set column values from a block
@@ -72,15 +68,18 @@ document changes to be identified and dealt with.
       end
     end
 
-### Stanza Summary
+## Stanza Summary
 
-#### changes
+### changes
 
 Defines which CouchDB database should be used to request the changes feed. The server
 should respond to the standard.
 
+When couch tap comes across a `changes` command, it actually fork the current process
+and sit in the background waiting for incoming change events.
 
-#### connection
+
+### connection
 
 The Sequel URL used to connect to the destination database. Behind the scenes,
 Couch Tap will check for a table named `couchdb_sequence` that contains a single

@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+
+require 'couch_tap'
+
+# Take in the arguments for the configuration file and try to run it
+puts "Reading configuration: #{ARGV[0]}"
+
