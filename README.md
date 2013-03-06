@@ -75,9 +75,6 @@ document changes to be identified and dealt with.
 Defines which CouchDB database should be used to request the changes feed. The server
 should respond to the standard.
 
-When couch tap comes across a `changes` command, it actually fork the current process
-and sit in the background waiting for incoming change events.
-
 
 ### connection
 

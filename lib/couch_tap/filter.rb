@@ -67,7 +67,7 @@ module CouchTap
     def set_columns_from_fields
       document.each do |k,v|
         k = k.to_sym
-        k = :id if k == :_id # Primary key default
+        k = :id if k == '_id' # Primary key default
         if schema.column_names.include?(k)
           row[k] = v
         end
@@ -82,6 +82,10 @@ module CouchTap
       
     end
 
+  end
+
+  def logger
+    CouchTap.logger
   end
 
 end

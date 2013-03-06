@@ -3,5 +3,7 @@
 require 'couch_tap'
 
 # Take in the arguments for the configuration file and try to run it
-puts "Reading configuration: #{ARGV[0]}"
+CouchTap.logger.info "Reading configuration: #{ARGV[0]}"
+
+CouchTap.module_eval(File.open(ARGV[0]).read)
 
