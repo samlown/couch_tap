@@ -32,37 +32,33 @@ document changes to be identified and dealt with.
 
       # Simple automated copy, each property's value in the matching CouchDB
       # document will copied to the table field with the same name.
-      filter 'type' => 'User' do
+      document 'type' => 'User' do
         table :users
       end
 
-      filter 'type' => 'Invoice' do
+      document 'type' => 'Invoice' do
 
         table :invoices do
-          # Which field should be used for the primary key?
-          primary_key :id, :code
-
           # Copy columns from fields with different name
           column :updated_at, :updated_on
           column :created_at, :created_on
 
           # Manually set a value from document or fixed variable
-          column :date, document['date']
+          column :date, doc['date']
           column :added_at, Time.now
 
-          # Set column values from a block
+          # Set column values from a block.
           column :total do
             doc['items'].inject(0){ |sum,item| sum + item['total'] }
           end
-        end
 
-        # Collections perform special synchronization.
-        # If there is no primary key for the table, each row will be deleted
-        # and recreated an on update. This might be very inefficient.
-        collection :items do |item|
-          table :invoice_items do
-            foreign_key :invoice_id, doc['_id']
-          end
+          # Collections perform special synchronization.
+          # An attempt will be made to try and update rows based on order as opposed
+          # to a delete and insert process.
+          # The foreign id key is assumed to be name of the parent
+          # table in singular form with `_id` appended.
+          # 
+          collection :items => :invoice_items
         end
 
       end
@@ -108,9 +104,10 @@ should be inserted into it. By default, the matching table's schema will be read
 and any field names that match a property in the top-level of the document will
 be inserted automatically.
 
-
-
-#### primary_key
+One of the limitations of Couch Tap is that all tables must have an id field as their
+primary key. In each row, the id's value will be copied from the `_id` of the
+document being imported. This is the only way that deleted documents can be
+reliably found and removed from the relational database.
 
 #### column
 

@@ -21,10 +21,10 @@ module CouchTap
       find_or_create_sequence_number
     end
 
-    def filter(filter = {}, &block)
-      @_document_filters << [
+    def document(filter = {}, &block)
+      @_document_handlers << [
         filter,
-        Filter.new(self, &block)
+        DocumentHanlder.new(self, &block)
       ]
     end
 
@@ -45,22 +45,22 @@ module CouchTap
           logger.info "Received change seq. #{row['seq']} id: #{row['id']}"
           doc = @source.get(row['id'])
         end
-        filter = find_document_filter(doc)
-        filter.execute(doc) if filter
+        handler = find_document_handler(doc)
+        handler.execute(doc) if filter
         update_sequence(row['seq'])
       end
     end
 
     protected
 
-    def find_document_filter(document)
-      filter = nil
-      @_document_filters.each do |row|
+    def find_document_handler(document)
+      handler = nil
+      @_document_handlers.each do |row|
         row[0].each do |k,v|
-          filter = (document[k.to_s] == v ? row[1] : nil)
+          handler = (document[k.to_s] == v ? row[1] : nil)
         end
       end
-      filter
+      handler
     end
 
     def find_or_create_sequence_number
