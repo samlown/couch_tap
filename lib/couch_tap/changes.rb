@@ -7,13 +7,16 @@ module CouchTap
     # Start a new Changes instance by connecting to the provided
     # CouchDB to see if the database exists.
     def initialize(opts = "", &block)
+      raise "Block required for changes!" unless block_given?
+
       @schemas = {}
       @_document_filters = []
       @source = CouchRest.database(opts)
       info = @source.info
       logger.info "Connected to CouchDB: #{info}"
+
+      # Prepare the definitions
       self.instance_eval(&block)
-      start
     end
 
     def database(opts)
@@ -32,26 +35,39 @@ module CouchTap
       @schemas[name.to_sym] ||= Schema.new(database, name)
     end
 
-    # Actually start listening to the CouchDB changes feed.
+    # Start listening to the CouchDB changes feed.
     # By this stage we should have a sequence id so we know where to start from
     # and all the filters should have been prepared.
     def start
       logger.info "Listening to changes feed..."
-      @source.changes :since => seq, :feed => 'continuous' do |row|
-        if row['deleted']
-          logger.info "Received delete seq. #{row['seq']} id: #{row['id']}"
-          # Not sure what to do with this yet!
-        else
-          logger.info "Received change seq. #{row['seq']} id: #{row['id']}"
-          doc = @source.get(row['id'])
-        end
-        handler = find_document_handler(doc)
-        handler.execute(doc) if filter
-        update_sequence(row['seq'])
-      end
+
+      url     = File.join(@source.root, '_changes')
+      query   = {:since => seq, :feed => 'continuous'}
+      @http   = EventMachine::HttpRequest.new(url).get(:query => query)
+      @parser = Yajl::Parser.new
+      @parser.on_parse_complete = method(:process_row)
+
+      @http.stream {|chunk| @parser << data}
     end
 
     protected
+
+    def process_row(row)
+      if row['deleted']
+        logger.info "Received delete seq. #{row['seq']} id: #{row['id']}"
+
+        # Not sure what to do with this yet!
+
+      else
+        logger.info "Received change seq. #{row['seq']} id: #{row['id']}"
+        doc = @source.get(row['id'])
+
+        handler = find_document_handler(doc)
+        handler.execute(doc) if hanlder
+      end
+
+      update_sequence(row['seq'])
+    end
 
     def find_document_handler(document)
       handler = nil

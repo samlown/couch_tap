@@ -68,8 +68,11 @@ document changes to be identified and dealt with.
 
 ### changes
 
-Defines which CouchDB database should be used to request the changes feed. The server
-should respond to the standard.
+Defines which CouchDB database should be used to request the changes feed.
+
+After loading the rest of the configuration, the service will connect will
+connect to the database using Event Machine. As new changes coming into the
+system they will be managed in the background.
 
 
 ### connection

@@ -2,6 +2,7 @@
 # Low level requirements
 require 'sequel'
 require 'couchrest'
+require 'yajl'
 
 # Our stuff
 require 'couch_tap/changes'
@@ -13,7 +14,8 @@ module CouchTap
   extend self
 
   def changes(database, &block)
-    Changes.new(database, &block)
+    changes = Changes.new(database, &block)
+    changes.start
   end
 
   # Provide some way to handle messages
