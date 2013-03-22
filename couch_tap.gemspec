@@ -15,4 +15,5 @@ Gem::Specification.new do |s|
   s.add_dependency "couchrest", "~> 1.1.3"
   s.add_dependency "em-http-request", "~> 1.0.3"
   s.add_dependency "yajl-ruby", "~> 1.1.0"
+  s.add_development_dependency "mocha"
 end

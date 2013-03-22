@@ -3,11 +3,13 @@
 require 'sequel'
 require 'couchrest'
 require 'yajl'
+require 'logger'
 
 # Our stuff
 require 'couch_tap/changes'
 require 'couch_tap/document_handler'
-require 'couch_tap/table'
+require 'couch_tap/table_row'
+require 'couch_tap/schema'
 
 
 module CouchTap

@@ -7,16 +7,16 @@ module CouchTap
 
     def initialize(changes, &block)
       @changes  = changes
-      @_block   = &block
+      @_block   = block
     end
 
-    def table(name)
+    def table(name, &block)
       TableRow.new(self, name, document, {}, &block).save
     end
 
     def execute(document)
       self.document = document
-      instance_eval(@_block)
+      instance_eval(&@_block)
     end
 
   end

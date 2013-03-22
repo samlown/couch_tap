@@ -134,4 +134,11 @@ to systems that require lots of document deletion, so hopefully this won't be
 too much of a problem.
 
 
+## Testing
+
+Run tests using rake, or individual tests as follows:
+
+    rake test TEST=test/unit/changes_test.rb
+
+
 

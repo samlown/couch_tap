@@ -22,10 +22,8 @@ module CouchTap
       @attributes = {}
 
       set_existing_attributes(:id => document['_id'])
-
       set_columns_from_fields
-      instance_eval(&block)
-
+      instance_eval(&block) if block_given?
     end
 
     def column(column, field)
@@ -38,19 +36,21 @@ module CouchTap
       end
     end
 
-    def collection(hash, &block)
-      field = hash.keys.first
-      table = hash[field]
-      (document[field.to_s] || []).each do |item|
-        TableRow.new(handler, table, :foreign_key => '', &block).save
-      end
-    end
+    # Not ready yet!
+    #def collection(hash, &block)
+    #  field = hash.keys.first
+    #  table = hash[field]
+    #  (document[field.to_s] || []).each do |item|
+    #    TableRow.new(handler, table, :foreign_key => '', &block).save
+    #  end
+    #end
 
     def save
       dataset = handler.changes.database[name]
       if attributes[:id]
-        dataset.update(attributes).where(:id => document['_id'])
+        dataset.where(:id => document['_id']).update(attributes)
       else
+        set_primary_key
         dataset.insert(attributes)
       end
     end
@@ -66,12 +66,12 @@ module CouchTap
     end
 
     def set_primary_key
-      set_column :id, document['_id']
+      set_column(:id, document['_id']) if document['_id']
     end
 
     def set_existing_attributes(filter)
       row = database[name].where(filter).first
-      attributes.merge(row) unless row.nil?
+      attributes.update(row) unless row.nil?
     end
 
     # Take the document and try to automatically set the fields from the columns
@@ -86,7 +86,7 @@ module CouchTap
     end
 
     def set_column(column, value)
-      attributes[key.to_sym] = value
+      attributes[column.to_sym] = value
     end
 
 
