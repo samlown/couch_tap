@@ -2,6 +2,7 @@
 # Low level requirements
 require 'sequel'
 require 'couchrest'
+require 'em-http'
 require 'yajl'
 require 'logger'
 
@@ -16,8 +17,15 @@ module CouchTap
   extend self
 
   def changes(database, &block)
-    changes = Changes.new(database, &block)
-    changes.start
+    (@changes ||= []) << Changes.new(database, &block)
+  end
+
+  def start
+    EventMachine.run do
+      @changes.each do |changes|
+        changes.start
+      end
+    end
   end
 
   # Provide some way to handle messages

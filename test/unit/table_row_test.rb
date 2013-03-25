@@ -40,14 +40,27 @@ class TableRowTest < Test::Unit::TestCase
     assert_equal @row.attributes[:name], 'Some Item'
   end
 
-
   def test_save_with_new_row
+    time = Time.now
     doc = {'type' => 'Item', 'name' => "Some Item", '_id' => '1234'}
     @row = CouchTap::TableRow.new(@handler, :items, doc)
     @row.save
 
-    assert_equal @database[:items].where(:id => '1234').count, 1
-    assert_equal @database[:items].first[:name], "Some Item"
+    items = @database[:items]
+    item = items.first
+    assert_equal items.where(:id => '1234').count, 1
+    assert_equal item[:name], "Some Item"
+  end
+
+  def test_save_with_new_row_with_time
+    time = Time.now
+    doc = {'type' => 'Item', 'name' => "Some Item", '_id' => '1234', 'created_at' => time.to_s}
+    @row = CouchTap::TableRow.new(@handler, :items, doc)
+    @row.save
+    items = @database[:items]
+    item = items.first
+    assert item[:created_at].is_a?(Time)
+    assert_equal item[:created_at].to_s, time.to_s
   end
 
   def test_save_with_existing_row
@@ -61,18 +74,60 @@ class TableRowTest < Test::Unit::TestCase
   end
 
   def test_column_assign_with_symbol
+    doc = {'type' => 'Item', 'full_name' => "Some Other Item", '_id' => '1234'}
+    @row = CouchTap::TableRow.new @handler, :items, doc do
+      column :name, :full_name
+    end
+    @row.save
 
+    data = @database[:items].first
+    assert_equal data[:name], doc['full_name']
   end
 
-  def test_column_assing_with_value
+  def test_column_assign_with_value
+    doc = {'type' => 'Item', '_id' => '1234'}
+    @row = CouchTap::TableRow.new @handler, :items, doc do
+      column :name, "Force the name"
+    end
+    @row.save
 
+    data = @database[:items].first
+    assert_equal data[:name], "Force the name"
+  end
+
+  def test_column_assign_with_nil
+    doc = {'type' => 'Item', 'name' => 'Some Item Name', '_id' => '1234'}
+    @row = CouchTap::TableRow.new @handler, :items, doc do
+      column :name, nil
+    end
+    @row.save
+    data = @database[:items].first
+    assert_equal data[:name], nil
   end
 
   def test_column_assign_with_block
+    doc = {'type' => 'Item', '_id' => '1234'}
+    @row = CouchTap::TableRow.new @handler, :items, doc do
+      column :name do
+        "Name from block"
+      end
+    end
+    @row.save
 
+    data = @database[:items].first
+    assert_equal data[:name], "Name from block"
   end
 
+  def test_column_assign_with_no_field
+    doc = {'type' => 'Item', 'name' => "Some Other Item", '_id' => '1234'}
+    @row = CouchTap::TableRow.new @handler, :items, doc do
+      column :name
+    end
+    @row.save
 
+    data = @database[:items].first
+    assert_equal data[:name], doc['name']
+  end
 
 
   protected
@@ -82,6 +137,7 @@ class TableRowTest < Test::Unit::TestCase
     database.create_table :items do
       String :id
       String :name
+      Time :created_at
       index :id, :unique => true
     end
     database

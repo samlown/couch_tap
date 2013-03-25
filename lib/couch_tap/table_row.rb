@@ -21,17 +21,22 @@ module CouchTap
       @name       = table_name
       @attributes = {}
 
-      set_existing_attributes(:id => document['_id'])
-      set_columns_from_fields
+      if @document
+        set_existing_attributes(:id => document['_id'])
+        set_columns_from_fields
+      end
       instance_eval(&block) if block_given?
     end
 
-    def column(column, field)
+    def column(*args)
+      return unless @document
+      column = args.first
+      field  = args.last
       if block_given?
         set_column(column, yield)
       elsif field.is_a?(Symbol)
         set_column(column, document[field.to_s])
-      else
+      elsif args.length > 1
         set_column(column, field)
       end
     end
@@ -41,17 +46,21 @@ module CouchTap
     #  field = hash.keys.first
     #  table = hash[field]
     #  (document[field.to_s] || []).each do |item|
-    #    TableRow.new(handler, table, :foreign_key => '', &block).save
+    #    TableRow.new(handler, table, :foreign_key => '', &block).execute
     #  end
     #end
 
-    def save
+    def execute
       dataset = handler.changes.database[name]
-      if attributes[:id]
-        dataset.where(:id => document['_id']).update(attributes)
+      if document
+        if attributes[:id]
+          dataset.where(:id => handler.id).update(attributes)
+        else
+          set_primary_key
+          dataset.insert(attributes)
+        end
       else
-        set_primary_key
-        dataset.insert(attributes)
+        dataset.where(:id => handler.id).drop
       end
     end
 

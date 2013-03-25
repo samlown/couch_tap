@@ -34,17 +34,15 @@ module CouchTap
     end
 
     def document(filter = {}, &block)
-      @handlers << [
-        filter,
-        DocumentHandler.new(self, &block)
-      ]
+      @handlers << DocumentHandler.new(self, filter, &block)
     end
 
     def schema(name)
       @schemas[name.to_sym] ||= Schema.new(database, name)
     end
 
-    # Start listening to the CouchDB changes feed.
+    # Start listening to the CouchDB changes feed. Must be called from
+    # a EventMachine run block for the HttpRequest to take control.
     # By this stage we should have a sequence id so we know where to start from
     # and all the filters should have been prepared.
     def start
@@ -56,39 +54,35 @@ module CouchTap
       @parser = Yajl::Parser.new
       @parser.on_parse_complete = method(:process_row)
 
-      @http.stream {|chunk| @parser << data}
+      @http.stream {|chunk| @parser << chunk}
     end
 
     protected
 
     def process_row(row)
+      doc = nil
       if row['deleted']
         logger.info "Received delete seq. #{row['seq']} id: #{row['id']}"
-
-        # Not sure what to do with this yet!
-
+        handlers.each do |handler|
+          handler.drop(row['id'])
+        end
       else
         logger.info "Received change seq. #{row['seq']} id: #{row['id']}"
         doc = fetch_document(row['id'])
-        handler = find_document_handler(doc)
-        handler.execute(doc) if handler
+        find_document_handlers(doc).each do |handler|
+          handler.add(doc)
+        end
       end
 
       update_sequence(row['seq'])
     end
 
     def fetch_document(id)
-      source.get(row['id'])
+      source.get(id)
     end
 
-    def find_document_handler(document)
-      handler = nil
-      @handlers.each do |row|
-        row[0].each do |k,v|
-          handler = (document[k.to_s] == v ? row[1] : nil)
-        end
-      end
-      handler
+    def find_document_handlers(document)
+      @handlers.reject{ |row| !row.handles?(document) }
     end
 
     def find_or_create_sequence_number

@@ -34,7 +34,7 @@ class ChangesTest < Test::Unit::TestCase
   end
 
 
-  def test_processing_rows
+  def test_processing_rows_adding
     @changes = CouchTap::Changes.new(TEST_DB_ROOT) do
       database "sqlite:/"
       document :type => 'Foo' do

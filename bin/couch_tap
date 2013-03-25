@@ -1,9 +1,13 @@
 #!/usr/bin/env ruby
 
+require 'rubygems'
 require 'couch_tap'
 
 # Take in the arguments for the configuration file and try to run it
 CouchTap.logger.info "Reading configuration: #{ARGV[0]}"
 
 CouchTap.module_eval(File.open(ARGV[0]).read)
+
+# With the configuration loaded, start her up!
+CouchTap.start
 
