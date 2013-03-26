@@ -61,20 +61,23 @@ module CouchTap
 
     def process_row(row)
       doc = nil
+      seq = row['seq']
+      id  = row['id']
+
       if row['deleted']
-        logger.info "Received delete seq. #{row['seq']} id: #{row['id']}"
+        logger.info "Received delete seq. #{seq} id: #{id}"
         handlers.each do |handler|
-          handler.drop(row['id'])
+          handler.drop(id)
         end
       else
-        logger.info "Received change seq. #{row['seq']} id: #{row['id']}"
-        doc = fetch_document(row['id'])
+        logger.info "Received change seq. #{seq} id: #{id}"
+        doc = fetch_document(id)
         find_document_handlers(doc).each do |handler|
-          handler.add(doc)
+          handler.add(id, doc)
         end
       end
 
-      update_sequence(row['seq'])
+      update_sequence(seq)
     end
 
     def fetch_document(id)

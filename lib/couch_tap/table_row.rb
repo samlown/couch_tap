@@ -12,24 +12,25 @@ module CouchTap
 
     attr_reader :attributes
 
-    attr_reader :document, :handler, :name
+    attr_reader :id, :document, :handler, :name
     alias doc document
 
-    def initialize(handler, table_name, document, opts = {}, &block)
+    def initialize(handler, table_name, id, document = nil, opts = {}, &block)
       @handler    = handler
+      @id         = id
       @document   = document
       @name       = table_name
       @attributes = {}
 
       if @document
-        set_existing_attributes(:id => document['_id'])
+        set_existing_attributes(:id => id)
         set_columns_from_fields
       end
       instance_eval(&block) if block_given?
     end
 
     def column(*args)
-      return unless @document
+      return unless document
       column = args.first
       field  = args.last
       if block_given?
@@ -52,15 +53,15 @@ module CouchTap
 
     def execute
       dataset = handler.changes.database[name]
-      if document
+      if document.nil?
+        dataset.where(:id => id).delete
+      else
         if attributes[:id]
-          dataset.where(:id => handler.id).update(attributes)
+          dataset.where(:id => id).update(attributes)
         else
           set_primary_key
           dataset.insert(attributes)
         end
-      else
-        dataset.where(:id => handler.id).drop
       end
     end
 
@@ -75,7 +76,7 @@ module CouchTap
     end
 
     def set_primary_key
-      set_column(:id, document['_id']) if document['_id']
+      set_column(:id, id)
     end
 
     def set_existing_attributes(filter)

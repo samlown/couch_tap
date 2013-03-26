@@ -5,12 +5,10 @@ class ChangesTest < Test::Unit::TestCase
 
   def setup
     reset_test_db!
+    build_sample_config
   end
 
   def test_basic_init
-    @changes = CouchTap::Changes.new(TEST_DB_ROOT) do
-      database "sqlite:/"
-    end
     @database = @changes.database
     assert @changes.database, "Did not assign a database"
     assert @changes.database.is_a?(Sequel::Database)
@@ -21,38 +19,66 @@ class ChangesTest < Test::Unit::TestCase
   end
 
   def test_defining_document_handler
-    @changes = CouchTap::Changes.new(TEST_DB_ROOT) do
-      database "sqlite:/"
-      document :type => 'Foo' do
-        # Nothing
-      end
-    end
-    assert_equal @changes.handlers.length, 1
+    assert_equal @changes.handlers.length, 3
     handler = @changes.handlers.first
-    assert_equal handler[0], :type => 'Foo'
-    assert handler[1].is_a?(CouchTap::DocumentHandler)
+    assert handler.is_a?(CouchTap::DocumentHandler)
+    assert_equal handler.filter, :type => 'Foo'
   end
 
-
-  def test_processing_rows_adding
-    @changes = CouchTap::Changes.new(TEST_DB_ROOT) do
-      database "sqlite:/"
-      document :type => 'Foo' do
-        # Nothing
-      end
-    end
+  def test_adding_rows
     row = {'seq' => 1, 'id' => '1234'}
     doc = {'_id' => '1234', 'type' => 'Foo', 'name' => 'Some Document'}
-
     @changes.expects(:fetch_document).with('1234').returns(doc)
 
     handler = @changes.handlers.first
-    handler[1].expects(:execute).with(doc)
+    handler.expects(:add).with('1234', doc)
 
     @changes.send(:process_row, row)
 
     # Should update seq
     assert_equal @changes.database[:couch_sequence].first[:seq], 1
+  end
+
+  def test_adding_rows_with_mutiple_filters
+    row = {'seq' => 3, 'id' => '1234'}
+    doc = {'_id' => '1234', 'type' => 'Bar', 'special' => true, 'name' => 'Some Document'}
+    @changes.expects(:fetch_document).with('1234').returns(doc)
+
+    handler = @changes.handlers[0]
+    handler.expects(:add).never
+    handler = @changes.handlers[1]
+    handler.expects(:add)
+    handler = @changes.handlers[2]
+    handler.expects(:add)
+
+    @changes.send(:process_row, row)
+    assert_equal @changes.database[:couch_sequence].first[:seq], 3
+  end
+
+  def test_dropping_rows
+    row = {'seq' => 9, 'id' => '1234', 'deleted' => true}
+
+    @changes.handlers.each do |handler|
+      handler.expects(:drop).with(row['id'])
+    end
+
+    @changes.send(:process_row, row)
+
+    assert_equal @changes.database[:couch_sequence].first[:seq], 9
+  end
+
+  protected
+
+  def build_sample_config
+    @changes = CouchTap::Changes.new(TEST_DB_ROOT) do
+      database "sqlite:/"
+      document :type => 'Foo' do
+      end
+      document :type => 'Bar' do
+      end
+      document :type => 'Bar', :special => true do
+      end
+    end
   end
 
 end
