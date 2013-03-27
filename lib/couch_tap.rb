@@ -5,6 +5,7 @@ require 'couchrest'
 require 'em-http'
 require 'yajl'
 require 'logger'
+require 'active_support/inflector'
 
 # Our stuff
 require 'couch_tap/changes'

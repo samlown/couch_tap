@@ -16,5 +16,6 @@ Gem::Specification.new do |s|
   s.add_dependency "em-http-request", "~> 1.0.3"
   s.add_dependency "yajl-ruby", "~> 1.1.0"
   s.add_dependency "sequel", ">= 3.45.0"
+  s.add_dependency "active_support", ">= 3.0.0"
   s.add_development_dependency "mocha"
 end

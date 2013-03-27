@@ -12,8 +12,7 @@ module CouchTap
 
     attr_reader :attributes
 
-    attr_reader :id, :document, :handler, :name
-    alias doc document
+    attr_reader :id, :document, :handler, :name, :parent
 
     def initialize(handler, table_name, id, document = nil, opts = {}, &block)
       @handler    = handler
@@ -22,8 +21,16 @@ module CouchTap
       @name       = table_name
       @attributes = {}
 
+      # Deal with special options
+      @parent     = opts[:parent]
+      @id_key     = opts[:id_key] || :id
+      @index      = opts[:index] || 0
+      if opts[:field]
+        self.class.define_method(opts[:field].to_s.singlurize) { @document }
+      end
+
       if @document
-        set_existing_attributes(:id => id)
+        find_existing_row_and_set_attributes
         set_columns_from_fields
       end
       instance_eval(&block) if block_given?
@@ -42,30 +49,44 @@ module CouchTap
       end
     end
 
-    # Not ready yet!
-    #def collection(hash, &block)
-    #  field = hash.keys.first
-    #  table = hash[field]
-    #  (document[field.to_s] || []).each do |item|
-    #    TableRow.new(handler, table, :foreign_key => '', &block).execute
-    #  end
-    #end
+    def collection(field, table, opts = {}, &block)
+      key   = opts[:key] || (table.to_s.singularize + '_id').to_sym
+      items = document[field.to_s] || []
+
+      items.each_with_index do |item, i|
+        TableRow.new(handler, table, id, item, :field => field, :id_key => key, :parent => self, :index => i, &block).execute
+      end
+    end
 
     def execute
       dataset = handler.changes.database[name]
       if document.nil?
-        dataset.where(:id => id).delete
+        dataset.where(@id_key => id).delete
       else
-        if attributes[:id]
-          dataset.where(:id => id).update(attributes)
-        else
-          set_primary_key
-          dataset.insert(attributes)
-        end
+        insert_or_update
       end
     end
 
+
+    # Helpers
+
+    # Original source document should always be provided
+    def document
+      parent ? parent.document : document
+    end
+    alias doc document
+
+
     protected
+
+    def insert_or_update
+      if attributes[:id]
+        dataset.where(:id => attributes[:id]).update(attributes)
+      else
+        set_primary_key
+        dataset.insert(attributes)
+      end
+    end
 
     def schema
       @schema ||= @handler.changes.schema(name)
@@ -79,8 +100,8 @@ module CouchTap
       set_column(:id, id)
     end
 
-    def set_existing_attributes(filter)
-      row = database[name].where(filter).first
+    def find_existing_row_and_set_attributes
+      row = database[name].where(@id_key => id).limit(nil, @index).first
       attributes.update(row) unless row.nil?
     end
 

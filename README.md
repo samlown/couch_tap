@@ -58,7 +58,9 @@ document changes to be identified and dealt with.
           # The foreign id key is assumed to be name of the parent
           # table in singular form with `_id` appended.
           # 
-          collection :items => :invoice_items
+          collection :items, :invoice_items do
+            column :date, item['date']
+          end
         end
 
       end
