@@ -55,10 +55,16 @@ document changes to be identified and dealt with.
           # Collections perform special synchronization.
           # An attempt will be made to try and update rows based on order as opposed
           # to a delete and insert process.
+          #
           # The foreign id key is assumed to be name of the parent
           # table in singular form with `_id` appended.
-          # 
-          collection :items, :invoice_items do
+          #
+          # Each item provided in the array will be made available in the
+          # `#item` method. `#document` continues to be the complete document.
+          #
+          # Collections can be nested if required.
+          #
+          collection :entries, :invoice_entries do
             column :date, item['date']
           end
         end

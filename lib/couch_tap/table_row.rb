@@ -37,13 +37,13 @@ module CouchTap
     end
 
     def column(*args)
-      return unless document
+      return unless item
       column = args.first
       field  = args.last
       if block_given?
         set_column(column, yield)
       elsif field.is_a?(Symbol)
-        set_column(column, document[field.to_s])
+        set_column(column, item[field.to_s])
       elsif args.length > 1
         set_column(column, field)
       end
@@ -76,6 +76,9 @@ module CouchTap
     end
     alias doc document
 
+    def item
+      @document
+    end
 
     protected
 
