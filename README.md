@@ -38,13 +38,14 @@ document changes to be identified and dealt with.
 
       document 'type' => 'Invoice' do
 
-        table :invoices do
+        table :invoices, :key => :invoice_id do
+
           # Copy columns from fields with different name
           column :updated_at, :updated_on
           column :created_at, :created_on
 
           # Manually set a value from document or fixed variable
-          column :date, doc['date']
+          column :date, doc['date'].to_json
           column :added_at, Time.now
 
           # Set column values from a block.
@@ -52,21 +53,35 @@ document changes to be identified and dealt with.
             doc['items'].inject(0){ |sum,item| sum + item['total'] }
           end
 
-          # Collections perform special synchronization.
-          # An attempt will be made to try and update rows based on order as opposed
-          # to a delete and insert process.
+          # Collections perform special synchronization in order to deal with
+          # one to one, or indeed many to many relationships.
+          #
+          # Rather than attempting a complex syncrhonisation process, the current
+          # version of Couch Tap will just DELETE all current entries with a
+          # primary key id that matches that of the parent table.
           #
           # The foreign id key is assumed to be name of the parent
           # table in singular form with `_id` appended.
           #
           # Each item provided in the array will be made available in the
-          # `#item` method. `#document` continues to be the complete document.
+          # `#data` method, and index from `#index`.
+          # `#document` continues to be the complete source document.
           #
-          # Collections can be nested if required.
+          # Collections can be nested to create highly complex structures.
           #
-          collection :entries, :invoice_entries do
-            column :date, item['date']
+          collection :groups do
+            table :invoice_groups do
+
+              collection :entries do
+                table :invoice_entries, :key => :entry_id do
+                  column :date, data['date']
+                  column :updated_at, document['updated_at']
+                end
+              end
+
+            end
           end
+
         end
 
       end

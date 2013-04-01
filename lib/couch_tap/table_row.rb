@@ -12,12 +12,12 @@ module CouchTap
 
     attr_reader :attributes
 
-    attr_reader :id, :document, :handler, :name, :parent
+    attr_reader :id, :data, :handler, :name, :parent
 
-    def initialize(handler, table_name, id, document = nil, opts = {}, &block)
+    def initialize(handler, table_name, id, data = nil, opts = {}, &block)
       @handler    = handler
       @id         = id
-      @document   = document
+      @data       = data
       @name       = table_name
       @attributes = {}
 
@@ -26,15 +26,28 @@ module CouchTap
       @id_key     = opts[:id_key] || :id
       @index      = opts[:index] || 0
       if opts[:field]
-        self.class.define_method(opts[:field].to_s.singlurize) { @document }
+        self.class.define_method(opts[:field].to_s.singlurize) { @data }
       end
 
-      if @document
+      if @data
         find_existing_row_and_set_attributes
         set_columns_from_fields
       end
       instance_eval(&block) if block_given?
     end
+
+    # The document currently being handled. Should always be the
+    # base document, even if dealing with collections.
+    def document
+      parent ? parent.document : @data
+    end
+    alias doc document
+
+    def base
+      parent ? parent.base : self
+    end
+
+    #### DSL Methods
 
     def column(*args)
       return unless item
@@ -49,36 +62,28 @@ module CouchTap
       end
     end
 
-    def collection(field, table, opts = {}, &block)
-      key   = opts[:key] || (table.to_s.singularize + '_id').to_sym
-      items = document[field.to_s] || []
+    def collection(table, opts = {}, &block)
+      key   = opts[:foreign_key] || (name.to_s.singularize + '_id').to_sym
+      field = opts[:field] || table
+      items = opts[:source] || data[field.to_s] || []
 
       items.each_with_index do |item, i|
         TableRow.new(handler, table, id, item, :field => field, :id_key => key, :parent => self, :index => i, &block).execute
       end
     end
 
+
+    #### Support Methods
+
     def execute
       dataset = handler.changes.database[name]
-      if document.nil?
+      if data.nil?
         dataset.where(@id_key => id).delete
       else
         insert_or_update
       end
     end
 
-
-    # Helpers
-
-    # Original source document should always be provided
-    def document
-      parent ? parent.document : document
-    end
-    alias doc document
-
-    def item
-      @document
-    end
 
     protected
 
@@ -100,6 +105,7 @@ module CouchTap
     end
 
     def set_primary_key
+
       set_column(:id, id)
     end
 
@@ -110,7 +116,7 @@ module CouchTap
 
     # Take the document and try to automatically set the fields from the columns
     def set_columns_from_fields
-      document.each do |k,v|
+      data.each do |k,v|
         k = k.to_sym
         next if k == :_id || k == :_rev
         if schema.column_names.include?(k)

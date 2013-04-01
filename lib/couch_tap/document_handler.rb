@@ -21,8 +21,8 @@ module CouchTap
     ### DSL
 
     # Handle a table definition.
-    def table(name, &block)
-      TableRow.new(self, name, id, document, {}, &block).execute
+    def table(name, opts = {}, &block)
+      TableRow.new(self, name, id, document, opts, &block).execute
     end
 
     ### END DSL
