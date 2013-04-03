@@ -17,6 +17,11 @@ synchronisation to be started and stopped at will.
 Ruby's fast and simple sequel library is used to provide the connection to the
 database. This library can also be used for migrations.
 
+A simplified approach to document to row conversion is taken, so each
+incoming document from a change is first completely deleted, and then re-created.
+This makes things much easier when trying to deal with multi-layer documents
+and one-to-many table relationships.
+
 
 ## A Couch Tap Project
 

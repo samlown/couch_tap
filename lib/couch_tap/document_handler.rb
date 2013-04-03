@@ -18,24 +18,40 @@ module CouchTap
       true
     end
 
-    ### DSL
+    ### START DSL
 
     # Handle a table definition.
     def table(name, opts = {}, &block)
-      TableRow.new(self, name, id, document, opts, &block).execute
+      if @mode == :delete
+        Destroyers::Table.new(self, name, opts, &block).execute
+      else
+        Builders::Table.new(self, name, document, opts, &block).execute
+      end
     end
 
     ### END DSL
 
-    def add(id, document)
-      self.id       = id
+    def handler
+      self
+    end
+
+    def primary_keys
+      []
+    end
+
+    def id
+      document['_id']
+    end
+
+    def insert(document)
+      @mode = :insert
       self.document = document
       instance_eval(&@_block)
     end
 
-    def drop(id)
-      self.id       = id
-      self.document = nil
+    def delete(document)
+      @mode = :delete
+      self.document = document
       instance_eval(&@_block)
     end
 

@@ -12,7 +12,7 @@ module CouchTap
 
     attr_reader :attributes
 
-    attr_reader :id, :data, :handler, :name, :parent
+    attr_reader :id, :data, :handler, :name, :parent, :primary_keys
 
     def initialize(handler, table_name, id, data = nil, opts = {}, &block)
       @handler    = handler
@@ -20,18 +20,22 @@ module CouchTap
       @data       = data
       @name       = table_name
       @attributes = {}
+      @persisted  = false
+      @_collections = []
 
       # Deal with special options
       @parent     = opts[:parent]
-      @id_key     = opts[:id_key] || :id
-      @index      = opts[:index] || 0
-      if opts[:field]
-        self.class.define_method(opts[:field].to_s.singlurize) { @data }
-      end
+
+      key = (opts[:key] || "#{@name.to_s.singluraize}_id").to_sym
+      @primary_keys = parent ? parent.primary_keys.clone : []
+      @primary_keys << key
+
+      # Always set the first primary key
+      attributes[primary_keys.first] = id
 
       if @data
-        find_existing_row_and_set_attributes
-        set_columns_from_fields
+        find_existing_row_and_set_attributes unless opts[:skip_find]
+        set_attributes_from_data
       end
       instance_eval(&block) if block_given?
     end
@@ -47,6 +51,14 @@ module CouchTap
       parent ? parent.base : self
     end
 
+    def key_filter
+      hash = {}
+      primary_keys.each do |k|
+        hash[k] = attributes[k]
+      end
+      hash
+    end
+
     #### DSL Methods
 
     def column(*args)
@@ -54,42 +66,47 @@ module CouchTap
       column = args.first
       field  = args.last
       if block_given?
-        set_column(column, yield)
+        set_attribute(column, yield)
       elsif field.is_a?(Symbol)
-        set_column(column, item[field.to_s])
+        set_attribute(column, item[field.to_s])
       elsif args.length > 1
-        set_column(column, field)
+        set_attribute(column, field)
       end
     end
 
-    def collection(table, opts = {}, &block)
-      key   = opts[:foreign_key] || (name.to_s.singularize + '_id').to_sym
-      field = opts[:field] || table
-      items = opts[:source] || data[field.to_s] || []
-
-      items.each_with_index do |item, i|
-        TableRow.new(handler, table, id, item, :field => field, :id_key => key, :parent => self, :index => i, &block).execute
-      end
+    def collection(field, opts = {}, &block)
+      @_collections << Collection.new(handler, self, field.to_s, &block)
     end
-
 
     #### Support Methods
 
     def execute
+      # Perform basic data entry
       dataset = handler.changes.database[name]
       if data.nil?
-        dataset.where(@id_key => id).delete
+        dataset.where(key_filter).delete
       else
         insert_or_update
+      end
+
+      # If there are any collections, reload the row so that
+      # any IDs will be set correctly.
+      if @_collections.length > 0
+        find_existing_row_and_set_attributes
+        @_collections.each{|collection| collection.execute}
       end
     end
 
 
     protected
 
+    def persisted?
+      @persisted
+    end
+
     def insert_or_update
-      if attributes[:id]
-        dataset.where(:id => attributes[:id]).update(attributes)
+      if persisted?
+        dataset.where(key_filter).update(attributes)
       else
         set_primary_key
         dataset.insert(attributes)
@@ -105,27 +122,31 @@ module CouchTap
     end
 
     def set_primary_key
-
-      set_column(:id, id)
+      key_filter.each do |k,v|
+        set_attribute(k, v)
+      end
     end
 
     def find_existing_row_and_set_attributes
-      row = database[name].where(@id_key => id).limit(nil, @index).first
-      attributes.update(row) unless row.nil?
+      row = database[name].where(key_filter).first
+      if row.present?
+        @persisted = true
+        attributes.update(row)
+      end
     end
 
     # Take the document and try to automatically set the fields from the columns
-    def set_columns_from_fields
+    def set_attributes_from_data
       data.each do |k,v|
         k = k.to_sym
         next if k == :_id || k == :_rev
         if schema.column_names.include?(k)
-          set_column(k, v)
+          set_attribute(k, v)
         end
       end
     end
 
-    def set_column(column, value)
+    def set_attribute(column, value)
       attributes[column.to_sym] = value
     end
 
