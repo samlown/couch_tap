@@ -10,14 +10,13 @@ module CouchTap
     class Table
 
       attr_reader :attributes
-      attr_reader :handler, :name, :data, :primary_keys
+      attr_reader :parent :name, :data, :primary_keys
 
-      def initialize(parent, name, data = nil, opts = {}, &block)
+      def initialize(parent, name, opts = {}, &block)
         @_collections = []
-        @attributes   = {}
 
         @parent = parent
-        @data   = data
+        @data   = opts[:data] || parent.document
         @name   = name
 
         # Deal with special options
@@ -26,10 +25,11 @@ module CouchTap
         @primary_keys = parent.primary_keys.dup
         @primary_keys << (opts[:primary_key] || "#{@name.to_s.singluraize}_id").to_sym
 
-        if @data
-          find_existing_row_and_set_attributes unless opts[:skip_find]
-          set_attributes_from_data
-        end
+        # Prepare the attributes
+        @attributes = {}
+        set_primary_keys
+        set_attributes_from_data
+
         instance_eval(&block) if block_given?
       end
 
@@ -41,17 +41,13 @@ module CouchTap
         handler.id
       end
 
-      # The document currently being handled. Should always be the
-      # base document, even if dealing with collections.
       def document
-        parent ? parent.document : @data
+        parent.document
       end
       alias doc document
 
-      def base
-        parent ? parent.base : self
-      end
-
+      # Grab the latest set of values to filter with.
+      # This is only relevant in sub-tables.
       def key_filter
         hash = {}
         primary_keys.each do |k|
@@ -76,64 +72,55 @@ module CouchTap
       end
 
       def collection(field, opts = {}, &block)
-        @_collections << Collection.new(handler, self, field.to_s, &block)
+        @_collections << Collection.new(self, field.to_s, opts, &block)
       end
 
       #### Support Methods
 
       def execute
-        # Perform basic data entry
-        dataset = handler.changes.database[name]
-        if data.nil?
-          dataset.where(key_filter).delete
-        else
-          insert_or_update
-        end
+        # Insert the record and prepare ID for sub-tables
+        id = dataset.insert(attributes)
+        set_attribute(primary_keys.last, id) unless id.blank?
 
-        # If there are any collections, reload the row so that
-        # any IDs will be set correctly.
+        # Now go through each collection entry
         if @_collections.length > 0
-          find_existing_row_and_set_attributes
           @_collections.each{|collection| collection.execute}
         end
       end
 
 
-      protected
-
-      def persisted?
-        @persisted
-      end
-
-      def insert_or_update
-        if persisted?
-          dataset.where(key_filter).update(attributes)
-        else
-          set_primary_key
-          dataset.insert(attributes)
-        end
-      end
+      private
 
       def schema
-        @schema ||= @handler.changes.schema(name)
+        @schema ||= handler.schema(name)
       end
 
       def database
-        @database ||= @handler.changes.database
+        @database ||= handler.database
       end
 
-      def set_primary_key
-        key_filter.each do |k,v|
-          set_attribute(k, v)
-        end
+      def dataset
+        database[name]
       end
 
       def find_existing_row_and_set_attributes
-        row = database[name].where(key_filter).first
-        if row.present?
-          @persisted = true
-          attributes.update(row)
-        end
+        row = dataset.where(key_filter).first
+        attributes.update(row) if row.present?
+      end
+
+      # Set the primary keys in the attributes so that the insert request
+      # will have all it requires.
+      #
+      # This methods has two modes of operation to handle the first table
+      # definition and sub-tables.
+      #
+      def set_primary_keys
+        base = parent.key_filter.dup
+
+        # Are we dealing with the first table?
+        base[primary_keys.first] = id if base.empty?
+
+        attributes.update(base)
       end
 
       # Take the document and try to automatically set the fields from the columns
@@ -149,11 +136,6 @@ module CouchTap
 
       def set_attribute(column, value)
         attributes[column.to_sym] = value
-      end
-
-
-      def logger
-        CouchTap.logger
       end
 
     end

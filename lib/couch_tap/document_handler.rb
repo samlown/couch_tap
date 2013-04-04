@@ -25,7 +25,7 @@ module CouchTap
       if @mode == :delete
         Destroyers::Table.new(self, name, opts, &block).execute
       else
-        Builders::Table.new(self, name, document, opts, &block).execute
+        Builders::Table.new(self, name, opts, &block).execute
       end
     end
 
@@ -37,6 +37,10 @@ module CouchTap
 
     def primary_keys
       []
+    end
+
+    def key_filter
+      {}
     end
 
     def id
@@ -53,6 +57,14 @@ module CouchTap
       @mode = :delete
       self.document = document
       instance_eval(&@_block)
+    end
+
+    def schema(name)
+      changes.schema(name)
+    end
+
+    def database
+      changes.database
     end
 
   end

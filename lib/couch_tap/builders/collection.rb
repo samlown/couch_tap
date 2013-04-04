@@ -2,52 +2,36 @@
 module CouchTap
 
   module Builder
+
+    #
+    # Collection Builder. Go through each sub-table definition and recursively
+    # prepare the data ready to be inserted into the database.
+    #
     class Collection
 
-      attr_reader :handler, :parent, :field, :data
+      attr_reader :parent
 
-      def initialize(handler, parent, field, opts = {}, &block)
-        @handler = handler
+      def initialize(parent, opts = {}, &block)
+        @_tables = []
         @parent  = parent
-        @field   = field
-        @data    = parent.data[field] || []
-        @_block  = block
+
+        instance_eval(&block)
       end
 
       def execute
-        if @data.is_a?(Array)
-          instance_eval(&@_block)
-        else
-          logger.error "Ignoring collection '#{field}' as not availble in document"
+        @_tables.each do |table|
+          table.execute
         end
+      end
+
+      def handler
+        parent.handler
       end
 
       #### DSL Methods
 
       def table(name, opts = {}, &block)
-        # 1. Perform a delete of all current rows with matching base primary key
-        dataset = handler.changes.database[name]
-        dataset.where(base.key_filter).delete
-
-        # 2. Create new rows using TableRow
-        id = parent.id
-        data.each_with_index do |item, i|
-          TableRow.new(handler, name, id, item, :parent => self, :skip_find => true, &block).execute
-        end
-      end
-
-      #### Support Methods
-
-      def document
-        @parent.document
-      end
-
-      def base
-        @parent ? @parent.base : self
-      end
-
-      def logger
-        CouchTap.logger
+        @_tables << Table.new(parent, name, opts, &block)
       end
 
     end
