@@ -25,10 +25,6 @@ module CouchTap
         end
       end
 
-      def handler
-        parent.handler
-      end
-
       #### DSL Methods
 
       def table(name, opts = {}, &block)

@@ -1,7 +1,7 @@
 
 module CouchTap
 
-  module Builder
+  module Builders
 
     #
     # Collection Builder. Go through each sub-table definition and recursively
@@ -9,11 +9,12 @@ module CouchTap
     #
     class Collection
 
-      attr_reader :parent
+      attr_reader :parent, :field
 
-      def initialize(parent, opts = {}, &block)
+      def initialize(parent, field, opts = {}, &block)
         @_tables = []
         @parent  = parent
+        @field   = field
 
         instance_eval(&block)
       end
@@ -24,14 +25,13 @@ module CouchTap
         end
       end
 
-      def handler
-        parent.handler
-      end
-
       #### DSL Methods
 
       def table(name, opts = {}, &block)
-        @_tables << Table.new(parent, name, opts, &block)
+        parent.data[field.to_s].each do |item|
+          options = opts.merge(:data => item)
+          @_tables << Table.new(parent, name, options, &block)
+        end
       end
 
     end

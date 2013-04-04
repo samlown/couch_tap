@@ -24,7 +24,7 @@ module CouchTap
 
         # As we're deleting, only assign the primary key for the first table
         if @primary_keys.empty?
-          @primary_keys << (opts[:primary_key] || "#{@name.to_s.singluraize}_id").to_s
+          @primary_keys << (opts[:primary_key] || "#{@name.to_s.singularize}_id").to_s
         end
 
         instance_eval(&block)

@@ -10,20 +10,17 @@ module CouchTap
     class Table
 
       attr_reader :attributes
-      attr_reader :parent :name, :data, :primary_keys
+      attr_reader :parent, :name, :data, :primary_keys
 
       def initialize(parent, name, opts = {}, &block)
         @_collections = []
 
         @parent = parent
         @data   = opts[:data] || parent.document
-        @name   = name
-
-        # Deal with special options
-        @parent     = opts[:parent]
+        @name   = name.to_sym
 
         @primary_keys = parent.primary_keys.dup
-        @primary_keys << (opts[:primary_key] || "#{@name.to_s.singluraize}_id").to_sym
+        @primary_keys << (opts[:primary_key] || "#{@name.to_s.singularize}_id").to_sym
 
         # Prepare the attributes
         @attributes = {}
@@ -46,6 +43,10 @@ module CouchTap
       end
       alias doc document
 
+      def database
+        @database ||= handler.database
+      end
+
       # Grab the latest set of values to filter with.
       # This is only relevant in sub-tables.
       def key_filter
@@ -59,20 +60,19 @@ module CouchTap
       #### DSL Methods
 
       def column(*args)
-        return unless item
         column = args.first
         field  = args.last
         if block_given?
           set_attribute(column, yield)
         elsif field.is_a?(Symbol)
-          set_attribute(column, item[field.to_s])
+          set_attribute(column, data[field.to_s])
         elsif args.length > 1
           set_attribute(column, field)
         end
       end
 
       def collection(field, opts = {}, &block)
-        @_collections << Collection.new(self, field.to_s, opts, &block)
+        @_collections << Collection.new(self, field, opts, &block)
       end
 
       #### Support Methods
@@ -84,7 +84,9 @@ module CouchTap
 
         # Now go through each collection entry
         if @_collections.length > 0
-          @_collections.each{|collection| collection.execute}
+          @_collections.each do |collection|
+            collection.execute
+          end
         end
       end
 
@@ -92,11 +94,7 @@ module CouchTap
       private
 
       def schema
-        @schema ||= handler.schema(name)
-      end
-
-      def database
-        @database ||= handler.database
+        handler.schema(name)
       end
 
       def dataset

@@ -2,7 +2,7 @@ module CouchTap
 
   class DocumentHandler
 
-    attr_reader :changes, :filter
+    attr_reader :changes, :filter, :mode
     attr_accessor :id, :document
 
     def initialize(changes, filter = {}, &block)

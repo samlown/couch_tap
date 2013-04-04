@@ -19,7 +19,7 @@ module CouchTap
       logger.info "Connected to CouchDB: #{info['db_name']}"
 
       # Prepare the definitions
-      self.instance_eval(&block)
+      instance_eval(&block)
     end
 
     # Dual-purpose method, accepts configuration of database
@@ -60,20 +60,20 @@ module CouchTap
     protected
 
     def process_row(row)
-      doc = nil
       seq = row['seq']
       id  = row['id']
 
       if row['deleted']
+        # Delete all the entries
         logger.info "Received delete seq. #{seq} id: #{id}"
-        handlers.each do |handler|
-          handler.drop(id)
-        end
+        handlers.each{ |handler| handler.delete('_id' => id) }
       else
         logger.info "Received change seq. #{seq} id: #{id}"
         doc = fetch_document(id)
         find_document_handlers(doc).each do |handler|
-          handler.add(id, doc)
+          # Delete all previous entries of doc, then re-create
+          handler.delete(doc)
+          handler.insert(doc)
         end
       end
 
