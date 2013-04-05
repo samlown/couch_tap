@@ -93,6 +93,23 @@ module Builders
       assert_equal @row.instance_eval("@_collections.length"), 1
     end
 
+    def test_collections_are_executed
+      @database.create_table :groups do
+        String :group_id
+        String :name
+      end
+      doc = {'type' => 'Item', 'name' => "Some Group", '_id' => '1234',
+        'items' => [{'index' => 1, 'name' => 'Item 1'}]}
+      @handler.document = doc
+      @row = CouchTap::Builders::Table.new @handler, :groups do
+        collection :items do
+          # Nothing
+        end
+      end
+      @row.instance_eval("@_collections.first.expects(:execute)")
+      @row.execute
+    end
+
 
     def test_column_assign_with_symbol
       doc = {'type' => 'Item', 'full_name' => "Some Other Item", '_id' => '1234'}
