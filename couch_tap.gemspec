@@ -18,4 +18,5 @@ Gem::Specification.new do |s|
   s.add_dependency "sequel", ">= 3.45.0"
   s.add_dependency "active_support", ">= 3.0.0"
   s.add_development_dependency "mocha"
+  s.add_development_dependency "sqlite3"
 end

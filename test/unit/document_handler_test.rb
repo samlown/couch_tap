@@ -28,34 +28,53 @@ class DocumentHandlerTest < Test::Unit::TestCase
     assert !@handler.handles?(doc)
   end
 
-  def test_add
+  def test_id
+    @handler = CouchTap::DocumentHandler.new 'changes' do
+      table :items
+    end
+    @handler.document = {'_id' => '12345'}
+    assert_equal @handler.id, '12345'
+  end
+
+  def test_insert
     @handler = CouchTap::DocumentHandler.new 'changes' do
       table :items
     end
     @handler.expects(:table).with(:items)
     doc = {'type' => 'Foo', '_id' => '1234'}
-    @handler.add('1234', doc)
+    @handler.insert(doc)
     assert_equal @handler.document, doc
-    assert_equal @handler.id, '1234'
   end
 
-  def test_drop
+  def test_delete
     @handler = CouchTap::DocumentHandler.new 'changes' do
       table :items
     end
     @handler.expects(:table).with(:items)
-    @handler.drop('1234')
-    assert_nil @handler.document
+    @handler.delete('_id' => '1234')
     assert_equal @handler.id, '1234'
   end
 
-  def test_table
+  def test_table_definition_on_delete
     @handler = CouchTap::DocumentHandler.new 'changes' do
-      # nothing
+      @mode = :delete # Force delete mode!
     end
-    table = mock()
-    table.expects(:execute)
-    CouchTap::TableRow.expects(:new).with(@handler, :items, nil, {}).returns(table)
-    assert_nil @handler.table(:items)
+    @handler.instance_eval("@mode = :delete")
+    @table = mock()
+    @table.expects(:execute)
+    CouchTap::Destroyers::Table.expects(:new).with(@handler, :items, {}).returns(@table)
+    @handler.table(:items)
   end
+
+  def test_table_definition_on_insert
+    @handler = CouchTap::DocumentHandler.new 'changes' do
+      # Force insert mode!
+    end
+    @handler.instance_eval("@mode = :insert")
+    @table = mock()
+    @table.expects(:execute)
+    CouchTap::Builders::Table.expects(:new).with(@handler, :items, {}).returns(@table)
+    @handler.table(:items)
+  end
+
 end

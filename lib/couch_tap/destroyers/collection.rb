@@ -11,7 +11,7 @@ module CouchTap
 
       attr_reader :parent
 
-      def initialize(parent, &block)
+      def initialize(parent, opts = {}, &block)
         @_tables = []
         @parent  = parent
 

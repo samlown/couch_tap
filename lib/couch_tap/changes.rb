@@ -23,14 +23,13 @@ module CouchTap
     end
 
     # Dual-purpose method, accepts configuration of database
-    # or simply returns it.
+    # or returns a previous definition.
     def database(opts = nil)
       if opts
         @database ||= Sequel.connect(opts)
         find_or_create_sequence_number
-      else
-        @database
       end
+      @database
     end
 
     def document(filter = {}, &block)

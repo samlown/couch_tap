@@ -21,34 +21,33 @@ module Destroyers
     end
 
     def test_defining_table
-      block = lambda do
-        # nothing
-      end
-      CouchTap::Destroyers::Table.expects(:new).with(@parent, :invoice_items, {}, &block)
+      @table = mock()
+      CouchTap::Destroyers::Table.expects(:new).with(@parent, :invoice_items, {}).returns(@table)
       @collection = CouchTap::Destroyers::Collection.new(@parent) do
-        table :invoice_items, &block
+        table :invoice_items
       end
       tables = @collection.instance_eval("@_tables")
       assert_equal tables.length, 1
-      assert tables.first.is_a?(CouchTap::Destroyers::Table)
+      assert_equal tables.first, @table
     end
 
     def test_defining_tables
+      CouchTap::Destroyers::Table.expects(:new).twice
       @collection = CouchTap::Destroyers::Collection.new(@parent) do
         table :invoice_items
         table :invoice_entries
       end
       tables = @collection.instance_eval("@_tables")
       assert_equal tables.length, 2
-      assert tables.last.is_a?(CouchTap::Destroyers::Table)
     end
 
     def test_execution
+      @table = mock()
+      CouchTap::Destroyers::Table.expects(:new).returns(@table)
       @collection = CouchTap::Destroyers::Collection.new(@parent) do
         table :invoice_items
       end
-      tables = @collection.instance_eval("@_tables")
-      tables[0].expects(:execute)
+      @table.expects(:execute)
       @collection.execute
     end
 

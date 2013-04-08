@@ -14,7 +14,7 @@ module CouchTap
 
       attr_reader :parent, :name, :primary_keys
 
-      def initialize(parent, name, opts, &block)
+      def initialize(parent, name, opts = {}, &block)
         @_collections = []
 
         @parent = parent
@@ -24,14 +24,14 @@ module CouchTap
 
         # As we're deleting, only assign the primary key for the first table
         if @primary_keys.empty?
-          @primary_keys << (opts[:primary_key] || "#{@name.to_s.singularize}_id").to_s
+          @primary_keys << (opts[:primary_key] || "#{@name.to_s.singularize}_id").to_sym
         end
 
-        instance_eval(&block)
+        instance_eval(&block) if block_given?
       end
 
       def execute
-        dataset = handler.changes.database[name]
+        dataset = handler.database[name]
         dataset.where(key_filter).delete
         @_collections.each do |collection|
           collection.execute

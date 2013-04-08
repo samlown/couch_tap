@@ -25,13 +25,14 @@ class ChangesTest < Test::Unit::TestCase
     assert_equal handler.filter, :type => 'Foo'
   end
 
-  def test_adding_rows
+  def test_inserting_rows
     row = {'seq' => 1, 'id' => '1234'}
     doc = {'_id' => '1234', 'type' => 'Foo', 'name' => 'Some Document'}
     @changes.expects(:fetch_document).with('1234').returns(doc)
 
     handler = @changes.handlers.first
-    handler.expects(:add).with('1234', doc)
+    handler.expects(:delete).with(doc)
+    handler.expects(:insert).with(doc)
 
     @changes.send(:process_row, row)
 
@@ -39,27 +40,29 @@ class ChangesTest < Test::Unit::TestCase
     assert_equal @changes.database[:couch_sequence].first[:seq], 1
   end
 
-  def test_adding_rows_with_mutiple_filters
+  def test_inserting_rows_with_mutiple_filters
     row = {'seq' => 3, 'id' => '1234'}
     doc = {'_id' => '1234', 'type' => 'Bar', 'special' => true, 'name' => 'Some Document'}
     @changes.expects(:fetch_document).with('1234').returns(doc)
 
     handler = @changes.handlers[0]
-    handler.expects(:add).never
+    handler.expects(:insert).never
     handler = @changes.handlers[1]
-    handler.expects(:add)
+    handler.expects(:delete)
+    handler.expects(:insert)
     handler = @changes.handlers[2]
-    handler.expects(:add)
+    handler.expects(:delete)
+    handler.expects(:insert)
 
     @changes.send(:process_row, row)
     assert_equal @changes.database[:couch_sequence].first[:seq], 3
   end
 
-  def test_dropping_rows
+  def test_deleting_rows
     row = {'seq' => 9, 'id' => '1234', 'deleted' => true}
 
     @changes.handlers.each do |handler|
-      handler.expects(:drop).with(row['id'])
+      handler.expects(:delete).with({'_id' => row['id']})
     end
 
     @changes.send(:process_row, row)

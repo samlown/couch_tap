@@ -38,6 +38,7 @@ GEM
     rest-client (1.6.7)
       mime-types (>= 1.16)
     sequel (3.45.0)
+    sqlite3 (1.3.7)
     yajl-ruby (1.1.0)
 
 PLATFORMS
@@ -46,3 +47,4 @@ PLATFORMS
 DEPENDENCIES
   couch_tap!
   mocha
+  sqlite3

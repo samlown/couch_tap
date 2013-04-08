@@ -9,6 +9,7 @@ module CouchTap
       @changes  = changes
       @filter   = filter
       @_block   = block
+      @mode     = nil
     end
 
     def handles?(doc)
@@ -24,7 +25,7 @@ module CouchTap
     def table(name, opts = {}, &block)
       if @mode == :delete
         Destroyers::Table.new(self, name, opts, &block).execute
-      else
+      elsif @mode == :insert
         Builders::Table.new(self, name, opts, &block).execute
       end
     end
