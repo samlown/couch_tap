@@ -48,35 +48,48 @@ module CouchTap
       logger.info "Listening to changes feed..."
 
       url     = File.join(source.root, '_changes')
-      query   = {:since => seq, :feed => 'continuous'}
-      @http   = EventMachine::HttpRequest.new(url).get(:query => query)
+      query   = {:since => seq, :feed => 'continuous', :heartbeat => 30000}
+      request = EventMachine::HttpRequest.new(url, :inactivity_timeout => 70)
+      @http   = request.get(:query => query, :keepalive => true)
       @parser = Yajl::Parser.new
       @parser.on_parse_complete = method(:process_row)
 
-      @http.stream {|chunk| @parser << chunk}
+      @http.stream do |chunk|
+        logger.debug "Chunk: #{chunk.strip}"
+        @parser << chunk
+      end
+      @http.errback do |err|
+        logger.error "Connection Failed: #{err.error}"
+      end
     end
 
     protected
 
     def process_row(row)
-      seq = row['seq']
       id  = row['id']
 
-      if row['deleted']
-        # Delete all the entries
-        logger.info "Received delete seq. #{seq} id: #{id}"
-        handlers.each{ |handler| handler.delete('_id' => id) }
-      else
-        logger.info "Received change seq. #{seq} id: #{id}"
-        doc = fetch_document(id)
-        find_document_handlers(doc).each do |handler|
-          # Delete all previous entries of doc, then re-create
-          handler.delete(doc)
-          handler.insert(doc)
+      # Sometimes CouchDB will send an update to keep the connection alive
+      if id
+        seq = row['seq']
+        if row['deleted']
+          # Delete all the entries
+          logger.info "Received delete seq. #{seq} id: #{id}"
+          handlers.each{ |handler| handler.delete('_id' => id) }
+        else
+          logger.info "Received change seq. #{seq} id: #{id}"
+          doc = fetch_document(id)
+          find_document_handlers(doc).each do |handler|
+            # Delete all previous entries of doc, then re-create
+            handler.delete(doc)
+            handler.insert(doc)
+          end
         end
-      end
 
-      update_sequence(seq)
+        update_sequence(seq)
+
+      elsif row['last_seq']
+        logger.info "Received last seq: #{row['last_seq']}"
+      end
     end
 
     def fetch_document(id)
