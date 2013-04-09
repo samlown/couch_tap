@@ -135,8 +135,23 @@ module CouchTap
         end
       end
 
-      def set_attribute(column, value)
-        attributes[column.to_sym] = value
+      def set_attribute(name, value)
+        name   = name.to_sym
+        column = schema.columns[name]
+        return if column.nil?
+        # Perform basic typecasting to avoid errors with empty fields
+        # in databases that do not support them.
+        case column[:type]
+        when :string
+          value = value.nil? ? nil : value.to_s
+        when :integer
+          value = value.to_i
+        when :float
+          value = value.to_f
+        else
+          value = nil if value.to_s.empty?
+        end
+        attributes[name] = value
       end
 
     end

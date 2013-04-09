@@ -33,7 +33,7 @@ module Builders
     end
 
     def test_init_with_data
-      doc = CouchRest::Document.new({'type' => 'Item', 'name' => "Some Group", '_id' => '1234',
+      doc = CouchRest::Document.new({'type' => 'Group', 'name' => "Some Group", '_id' => '1234',
         'items' => [{'index' => 1, 'name' => 'Item 1'}]})
       @handler.document = doc
       @parent = CouchTap::Builders::Table.new(@handler, 'groups')
@@ -70,7 +70,6 @@ module Builders
     end
 
     def test_execute_with_new_row
-      time = Time.now
       doc = {'type' => 'Item', 'name' => "Some Item", '_id' => '1234'}
       @handler.document = doc
       @row = CouchTap::Builders::Table.new(@handler, :items)
@@ -159,6 +158,53 @@ module Builders
       assert_equal data[:name], nil
     end
 
+    def test_column_assign_with_empty_for_non_string
+      doc = {'type' => 'Item', 'name' => 'Some Item Name', 'created_at' => '', '_id' => '1234'}
+      @handler.document = doc
+      @row = CouchTap::Builders::Table.new @handler, :items
+      @row.execute
+      data = @database[:items].first
+      assert_equal data[:created_at], nil
+    end
+
+    def test_column_assign_with_integer
+      doc = {'type' => 'Item', 'count' => 3, '_id' => '1234'}
+      @handler.document = doc
+      @row = CouchTap::Builders::Table.new @handler, :items
+      @row.execute
+      data = @database[:items].first
+      assert_equal data[:count], 3
+    end
+
+    def test_column_assign_with_integer_as_string
+      doc = {'type' => 'Item', 'count' => '1', '_id' => '1234'}
+      @handler.document = doc
+      @row = CouchTap::Builders::Table.new @handler, :items
+      @row.execute
+      data = @database[:items].first
+      assert_equal data[:count], 1
+    end
+
+    def test_column_assign_with_float
+      doc = {'type' => 'Item', 'price' => 1.2, '_id' => '1234'}
+      @handler.document = doc
+      @row = CouchTap::Builders::Table.new @handler, :items
+      @row.execute
+      data = @database[:items].first
+      assert_equal data[:price], 1.2
+    end
+
+
+    def test_column_assign_with_float_as_string
+      doc = {'type' => 'Item', 'price' => '1.2', '_id' => '1234'}
+      @handler.document = doc
+      @row = CouchTap::Builders::Table.new @handler, :items
+      @row.execute
+      data = @database[:items].first
+      assert_equal data[:price], 1.2
+    end
+
+
     def test_column_assign_with_block
       doc = {'type' => 'Item', '_id' => '1234'}
       @handler.document = doc
@@ -193,6 +239,8 @@ module Builders
       database.create_table :items do
         String :item_id
         String :name
+        Integer :count
+        Float :price
         Time :created_at
         index :item_id, :unique => true
       end
