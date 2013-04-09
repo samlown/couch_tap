@@ -62,12 +62,12 @@ module CouchTap
       end
 
       def document
-        nil
+        {}
       end
       alias doc document
 
       def data
-        nil
+        {}
       end
 
     end

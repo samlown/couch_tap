@@ -71,21 +71,25 @@ module CouchTap
       # Sometimes CouchDB will send an update to keep the connection alive
       if id
         seq = row['seq']
-        if row['deleted']
-          # Delete all the entries
-          logger.info "Received delete seq. #{seq} id: #{id}"
-          handlers.each{ |handler| handler.delete('_id' => id) }
-        else
-          logger.info "Received change seq. #{seq} id: #{id}"
-          doc = fetch_document(id)
-          find_document_handlers(doc).each do |handler|
-            # Delete all previous entries of doc, then re-create
-            handler.delete(doc)
-            handler.insert(doc)
-          end
-        end
 
-        update_sequence(seq)
+        # Wrap the whole request in a transaction
+        database.transaction do
+          if row['deleted']
+            # Delete all the entries
+            logger.info "Received delete seq. #{seq} id: #{id}"
+            handlers.each{ |handler| handler.delete('_id' => id) }
+          else
+            logger.info "Received change seq. #{seq} id: #{id}"
+            doc = fetch_document(id)
+            find_document_handlers(doc).each do |handler|
+              # Delete all previous entries of doc, then re-create
+              handler.delete(doc)
+              handler.insert(doc)
+            end
+          end
+
+          update_sequence(seq)
+        end # transaction
 
       elsif row['last_seq']
         logger.info "Received last seq: #{row['last_seq']}"

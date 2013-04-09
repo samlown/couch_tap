@@ -12,7 +12,7 @@ module Builders
     end
 
     def test_init
-      doc = {'type' => 'Item', 'name' => "Some Item", '_id' => '1234'}
+      doc = CouchRest::Document.new({'type' => 'Item', 'name' => "Some Item", '_id' => '1234'})
       @handler.document = doc
       @row = CouchTap::Builders::Table.new(@handler, 'items')
 
@@ -33,8 +33,8 @@ module Builders
     end
 
     def test_init_with_data
-      doc = {'type' => 'Item', 'name' => "Some Group", '_id' => '1234',
-        'items' => [{'index' => 1, 'name' => 'Item 1'}]}
+      doc = CouchRest::Document.new({'type' => 'Item', 'name' => "Some Group", '_id' => '1234',
+        'items' => [{'index' => 1, 'name' => 'Item 1'}]})
       @handler.document = doc
       @parent = CouchTap::Builders::Table.new(@handler, 'groups')
       @row = CouchTap::Builders::Table.new(@parent, 'items', :data => doc['items'][0])

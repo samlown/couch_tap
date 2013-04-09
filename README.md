@@ -87,6 +87,13 @@ document changes to be identified and dealt with.
             end
           end
 
+          # Collections can also be used on Many to Many relationships.
+          collection :label_ids do
+            table :invoice_labels do
+              column :label_id, data
+            end
+          end
+
         end
 
       end

@@ -125,7 +125,7 @@ module CouchTap
 
       # Take the document and try to automatically set the fields from the columns
       def set_attributes_from_data
-        return unless data.is_a?(Hash)
+        return unless data.is_a?(Hash) || data.is_a?(CouchRest::Document)
         data.each do |k,v|
           k = k.to_sym
           next if k == :_id || k == :_rev

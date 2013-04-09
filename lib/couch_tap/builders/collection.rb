@@ -28,7 +28,8 @@ module CouchTap
       #### DSL Methods
 
       def table(name, opts = {}, &block)
-        parent.data[field.to_s].each do |item|
+        source = parent.data[field.to_s] || []
+        source.each do |item|
           options = opts.merge(:data => item)
           @_tables << Table.new(parent, name, options, &block)
         end

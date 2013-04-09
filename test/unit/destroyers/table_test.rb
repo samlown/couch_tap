@@ -86,15 +86,15 @@ module Destroyers
       assert_nil @row.column
     end
 
-    def test_document_returns_nil
+    def test_document_returns_empty
       @row = CouchTap::Destroyers::Table.new @handler, :item
-      assert_nil @row.document
-      assert_nil @row.doc
+      assert_empty @row.document
+      assert_empty @row.doc
     end
 
-    def test_data_returns_nil
+    def test_data_returns_empty
       @row = CouchTap::Destroyers::Table.new @handler, :item
-      assert_nil @row.data
+      assert_empty @row.data
     end
 
 

@@ -49,6 +49,16 @@ module Builders
       end
     end
 
+    def test_defining_table_with_null_data
+      assert_nothing_raised do
+        @parent.expects(:data).returns({'items' =>  nil})
+        CouchTap::Builders::Table.expects(:new).never
+        @collection = CouchTap::Builders::Collection.new(@parent, :items) do
+          table :invoice_items
+        end
+      end
+    end
+
     def test_execution
       @table = mock()
       CouchTap::Builders::Table.expects(:new).twice.returns(@table)
