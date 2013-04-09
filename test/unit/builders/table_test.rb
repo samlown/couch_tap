@@ -56,6 +56,19 @@ module Builders
       assert_equal @row.primary_keys, [:entry_id]
     end
 
+    def test_init_with_data_string
+      create_many_to_many_items
+      doc = {'type' => 'Item', 'name' => "Some Group", '_id' => '1234',
+        'item_ids' => ['i1234', 'i1235']}
+      @handler.document = doc
+      @parent = CouchTap::Builders::Table.new(@handler, 'groups')
+      @row = CouchTap::Builders::Table.new(@parent, :group_items, :primary_key => false, :data => doc['item_ids'][0]) do
+        column :item_id, data
+      end
+      @row.execute
+      assert_equal @database[:group_items].first, {:group_id => '1234', :item_id => 'i1234'}
+    end
+
     def test_execute_with_new_row
       time = Time.now
       doc = {'type' => 'Item', 'name' => "Some Item", '_id' => '1234'}
@@ -184,6 +197,14 @@ module Builders
         index :item_id, :unique => true
       end
       database
+    end
+
+    def create_many_to_many_items
+      @database.create_table :group_items do
+        String :group_id
+        String :item_id
+        index :group_id
+      end
     end
 
   end

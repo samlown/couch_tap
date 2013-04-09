@@ -20,7 +20,9 @@ module CouchTap
         @name   = name.to_sym
 
         @primary_keys = parent.primary_keys.dup
-        @primary_keys << (opts[:primary_key] || "#{@name.to_s.singularize}_id").to_sym
+        unless opts[:primary_key] === false
+          @primary_keys << (opts[:primary_key] || "#{@name.to_s.singularize}_id").to_sym
+        end
 
         # Prepare the attributes
         @attributes = {}
@@ -123,6 +125,7 @@ module CouchTap
 
       # Take the document and try to automatically set the fields from the columns
       def set_attributes_from_data
+        return unless data.is_a?(Hash)
         data.each do |k,v|
           k = k.to_sym
           next if k == :_id || k == :_rev
