@@ -70,6 +70,14 @@ class ChangesTest < Test::Unit::TestCase
     assert_equal @changes.database[:couch_sequence].first[:seq], 9
   end
 
+  def test_returning_schema
+    schema = mock()
+    CouchTap::Schema.expects(:new).once.with(@changes.database, :items).returns(schema)
+    # Run twice to ensure cached
+    assert_equal @changes.schema(:items), schema
+    assert_equal @changes.schema(:items), schema
+  end
+
   protected
 
   def build_sample_config

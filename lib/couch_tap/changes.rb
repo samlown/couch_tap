@@ -2,6 +2,10 @@
 module CouchTap
   class Changes
 
+    COUCHDB_HEARTBEAT  = 30
+    INACTIVITY_TIMEOUT = 70
+    RECONNECT_TIMEOUT  = 15
+
     attr_reader :source, :database, :schemas, :handlers
 
     attr_accessor :seq
@@ -22,6 +26,8 @@ module CouchTap
       instance_eval(&block)
     end
 
+    #### DSL
+
     # Dual-purpose method, accepts configuration of database
     # or returns a previous definition.
     def database(opts = nil)
@@ -36,6 +42,8 @@ module CouchTap
       @handlers << DocumentHandler.new(self, filter, &block)
     end
 
+    #### END DSL
+
     def schema(name)
       @schemas[name.to_sym] ||= Schema.new(database, name)
     end
@@ -45,25 +53,44 @@ module CouchTap
     # By this stage we should have a sequence id so we know where to start from
     # and all the filters should have been prepared.
     def start
-      logger.info "Listening to changes feed..."
-
-      url     = File.join(source.root, '_changes')
-      query   = {:since => seq, :feed => 'continuous', :heartbeat => 30000}
-      request = EventMachine::HttpRequest.new(url, :inactivity_timeout => 70)
-      @http   = request.get(:query => query, :keepalive => true)
-      @parser = Yajl::Parser.new
-      @parser.on_parse_complete = method(:process_row)
-
-      @http.stream do |chunk|
-        logger.debug "Chunk: #{chunk.strip}"
-        @parser << chunk
-      end
-      @http.errback do |err|
-        logger.error "Connection Failed: #{err.error}"
-      end
+      prepare_parser
+      perform_request
     end
 
     protected
+
+    def perform_request
+      logger.info "Listening to changes feed from seq: #{seq}"
+
+      unless @request
+        url      = File.join(source.root, '_changes')
+        @request = EventMachine::HttpRequest.new(url, :inactivity_timeout => INACTIVITY_TIMEOUT)
+      end
+
+      # Make sure the request has the latest sequence
+      query = {:since => seq, :feed => 'continuous', :heartbeat => COUCHDB_HEARTBEAT * 1000}
+      @http = @request.get(:query => query, :keepalive => true)
+
+      # Handle incoming data
+      @http.stream do |chunk|
+        # logger.debug chunk.strip
+        @parser << chunk
+      end
+
+      # Handle error events
+      @http.errback do |err|
+        logger.error "Connection Failed: #{err.error}, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
+        EM.add_timer RECONNECT_TIMEOUT do
+          perform_request
+        end
+      end
+    end
+
+    def prepare_parser
+      @parser = Yajl::Parser.new
+      @parser.on_parse_complete = method(:process_row)
+      @parser
+    end
 
     def process_row(row)
       id  = row['id']
