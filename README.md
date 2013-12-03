@@ -2,24 +2,26 @@
 # Couch Tap
 
 Utility to listen to a CouchDB changes feed and automatically insert, update,
-or delete rows matching document types into a relational database.
+or delete rows matching key-value conditions of incomning documents into a 
+relational database.
 
-While CouchDB is awesome for developers, business people probably won't be
+While CouchDB is awesome, business people probably won't be
 quite as impressed when they want to play around with the data. Regular SQL
-is simply much easier to use and much more widely supported by a larger
-range of comercial tools.
+is generally accepted as being easy to use and much more widely supported by a larger
+range of comercial tools, such as chart.io.
 
 Couch Tap will listen to incoming documents on a CouchDB's changes
 stream and automatically update rows of RDBMS tables defined in the
 conversion schema. The changes stream uses a sequence number allowing
 synchronisation to be started and stopped at will.
 
-Ruby's fast and simple sequel library is used to provide the connection to the
-database. This library can also be used for migrations.
+Ruby's fast and simple (sequel)[http://sequel.jeremyevans.net/] library is used to provide the connection to the
+database. This library can also be used for migrations, important for frequently changing schemas.
 
-A simplified approach to document to row conversion is taken, so each
-incoming document from a change is first completely deleted, and then re-created.
-This makes things much easier when trying to deal with multi-layer documents
+Couch tap takes a simple two-step approach converting documents to rows. When a change event is received
+for a matching `document` definition, each associated row is completely deleted. If the change
+is anything other than a delete event, the rows will be re-created with the new data.
+This makes things much easier when trying to deal with multi-level documents (i.e. documents of documents)
 and one-to-many table relationships.
 
 
@@ -28,78 +30,81 @@ and one-to-many table relationships.
 Couch Tap requires a configuration or filter definition that will allow incoming
 document changes to be identified and dealt with.
 
+The following example attempts to outline most of the key features of the DSL.
 
-    # The couchdb database from which to request the changes feed
-    changes "http://user:pass@host:port/invoicing" do
+```ruby
+# The couchdb database from which to request the changes feed
+changes "http://user:pass@host:port/invoicing" do
 
-      # Which database should we connect to?
-      database "postgres://user:pass@localhost:5432/invoicing"
+  # Which database should we connect to?
+  database "postgres://user:pass@localhost:5432/invoicing"
 
-      # Simple automated copy, each property's value in the matching CouchDB
-      # document will copied to the table field with the same name.
-      document 'type' => 'User' do
-        table :users
+  # Simple automated copy, each property's value in the matching CouchDB
+  # document will copied to the table field with the same name.
+  document 'type' => 'User' do
+    table :users
+  end
+
+  document 'type' => 'Invoice' do
+
+    table :invoices, :key => :invoice_id do
+
+      # Copy columns from fields with different name
+      column :updated_at, :updated_on
+      column :created_at, :created_on
+
+      # Manually set a value from document or fixed variable
+      column :date, doc['date'].to_json
+      column :added_at, Time.now
+
+      # Set column values from a block.
+      column :total do
+        doc['items'].inject(0){ |sum,item| sum + item['total'] }
       end
 
-      document 'type' => 'Invoice' do
+      # Collections perform special synchronization in order to deal with
+      # one to one, or indeed many to many relationships.
+      #
+      # Rather than attempting a complex syncrhonisation process, the current
+      # version of Couch Tap will just DELETE all current entries with a
+      # primary key id that matches that of the parent table.
+      #
+      # The foreign id key is assumed to be name of the parent
+      # table in singular form with `_id` appended.
+      #
+      # Each item provided in the array will be made available in the
+      # `#data` method, and index from `#index`.
+      # `#document` continues to be the complete source document.
+      #
+      # Collections can be nested to create highly complex structures.
+      #
+      collection :groups do
+        table :invoice_groups do
 
-        table :invoices, :key => :invoice_id do
-
-          # Copy columns from fields with different name
-          column :updated_at, :updated_on
-          column :created_at, :created_on
-
-          # Manually set a value from document or fixed variable
-          column :date, doc['date'].to_json
-          column :added_at, Time.now
-
-          # Set column values from a block.
-          column :total do
-            doc['items'].inject(0){ |sum,item| sum + item['total'] }
-          end
-
-          # Collections perform special synchronization in order to deal with
-          # one to one, or indeed many to many relationships.
-          #
-          # Rather than attempting a complex syncrhonisation process, the current
-          # version of Couch Tap will just DELETE all current entries with a
-          # primary key id that matches that of the parent table.
-          #
-          # The foreign id key is assumed to be name of the parent
-          # table in singular form with `_id` appended.
-          #
-          # Each item provided in the array will be made available in the
-          # `#data` method, and index from `#index`.
-          # `#document` continues to be the complete source document.
-          #
-          # Collections can be nested to create highly complex structures.
-          #
-          collection :groups do
-            table :invoice_groups do
-
-              collection :entries do
-                table :invoice_entries, :key => :entry_id do
-                  column :date, data['date']
-                  column :updated_at, document['updated_at']
-                end
-              end
-
-            end
-          end
-
-          # Collections can also be used on Many to Many relationships.
-          collection :label_ids do
-            table :invoice_labels do
-              column :label_id, data
+          collection :entries do
+            table :invoice_entries, :key => :entry_id do
+              column :date, data['date']
+              column :updated_at, document['updated_at']
             end
           end
 
         end
-
       end
+
+      # Collections can also be used on Many to Many relationships.
+      collection :label_ids do
+        table :invoice_labels do
+          column :label_id, data
+        end
+      end
+
     end
 
-## Stanza Summary
+  end
+end
+```
+
+## DSL Summary
 
 ### changes
 
