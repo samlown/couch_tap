@@ -2,13 +2,12 @@
 # Couch Tap
 
 Utility to listen to a CouchDB changes feed and automatically insert, update,
-or delete rows matching key-value conditions of incomning documents into a 
-relational database.
+or delete rows into a relational database from matching key-value conditions of incoming documents.
 
 While CouchDB is awesome, business people probably won't be
 quite as impressed when they want to play around with the data. Regular SQL
 is generally accepted as being easy to use and much more widely supported by a larger
-range of comercial tools, such as chart.io.
+range of comercial tools.
 
 Couch Tap will listen to incoming documents on a CouchDB's changes
 stream and automatically update rows of RDBMS tables defined in the
