@@ -133,7 +133,13 @@ module CouchTap
 
     def find_or_create_sequence_number
       create_sequence_table unless database.table_exists?(:couch_sequence)
-      self.seq = database[:couch_sequence].where(:name => source.name).first[:seq]
+      self.seq = find_or_initialize_sequence
+    end
+
+    def find_or_initialize_sequence
+      sequence = database[:couch_sequence].where(:name => source.name)
+      database[:couch_sequence].insert(:name => source.name) if sequence.blank?
+      sequence.first[:seq]
     end
 
     def update_sequence(seq)
