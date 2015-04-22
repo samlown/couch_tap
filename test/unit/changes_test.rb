@@ -3,9 +3,17 @@ require 'test_helper'
 
 class ChangesTest < Test::Unit::TestCase
 
+  DB_TEST_FILE = "test.db"
+  CHANGE_TESTS_SQLITE_DB = "sqlite://#{DB_TEST_FILE}"
+
   def setup
     reset_test_db!
+    create_sqlite_file
     build_sample_config
+  end
+
+  def teardown
+    remove_sqlite_file
   end
 
   def test_basic_init
@@ -16,6 +24,21 @@ class ChangesTest < Test::Unit::TestCase
     assert row, "Did not create a couch_sequence table"
     assert_equal row[:seq], 0, "Did not set a default sequence number"
     assert_equal row[:name], TEST_DB_NAME, "Sequence name does not match"
+  end
+
+  def test_sequential_initialization_for_more_than_one_source
+    secondary_database_name = "secondary_database"
+    secondary_database_root = File.join(TEST_DB_HOST, secondary_database_name)
+    secondary_database = CouchRest.database(secondary_database_root)
+    secondary_database.recreate!
+    secondary_changes = CouchTap::Changes.new(secondary_database_root) do
+      database CHANGE_TESTS_SQLITE_DB
+    end
+    
+    secondary_database = secondary_changes.database[:couch_sequence].where(:name => secondary_database_name).first
+    assert_equal secondary_database[:seq], 0, "Did not set a default sequence number for the secondary database"
+    test_database = @changes.database[:couch_sequence].where(:name => TEST_DB_NAME).first
+    assert_equal test_database[:seq], 0, "Did not set a default sequence number for the test database"
   end
 
   def test_defining_document_handler
@@ -80,9 +103,17 @@ class ChangesTest < Test::Unit::TestCase
 
   protected
 
+  def create_sqlite_file
+    File.open(DB_TEST_FILE, "w") {}
+  end
+
+  def remove_sqlite_file
+    File.delete(DB_TEST_FILE) if File.exists?(DB_TEST_FILE)
+  end
+
   def build_sample_config
     @changes = CouchTap::Changes.new(TEST_DB_ROOT) do
-      database "sqlite:/"
+      database CHANGE_TESTS_SQLITE_DB
       document :type => 'Foo' do
       end
       document :type => 'Bar' do
