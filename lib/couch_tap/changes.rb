@@ -79,7 +79,7 @@ module CouchTap
         @parser << chunk
       end
 
-    rescue HTTPClient::ConnectTimeoutError, HTTPClient::TimeoutError => e
+    rescue HTTPClient::TimeoutError, HTTPClient::BadResponseError => e
       logger.error "#{source.name}: connection failed: #{e.message}, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
       wait RECONNECT_TIMEOUT
       retry
