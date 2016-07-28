@@ -67,7 +67,7 @@ module CouchTap
       uri = URI.parse(url)
       # Authenticate?
       if uri.user.present? && uri.password.present?
-        http.set_auth(source.root, uri.user, uri.password)
+        @http.set_auth(source.root, uri.user, uri.password)
       end
 
       # Make sure the request has the latest sequence
