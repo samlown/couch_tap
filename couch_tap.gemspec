@@ -13,10 +13,10 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   s.add_dependency "couchrest", "~> 1.1.3"
-  s.add_dependency "em-http-request", "~> 1.0.3"
+  s.add_dependency "httpclient", "~> 2.6"
   s.add_dependency "yajl-ruby", "~> 1.1.0"
-  s.add_dependency "sequel", ">= 3.45.0"
-  s.add_dependency "activesupport", ">= 3.0.0"
+  s.add_dependency "sequel", ">= 4.36.0"
+  s.add_dependency "activesupport", "~> 4.0"
   s.add_development_dependency "mocha"
   s.add_development_dependency "sqlite3"
 end

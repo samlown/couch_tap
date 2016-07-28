@@ -19,6 +19,7 @@ module CouchTap
       @handlers = []
       @source   = CouchRest.database(opts)
       info      = @source.info
+      @http     = HTTPClient.new
 
       logger.info "Connected to CouchDB: #{info['db_name']}"
 
@@ -60,30 +61,23 @@ module CouchTap
     protected
 
     def perform_request
-      logger.info "Listening to changes feed from seq: #{seq}"
+      logger.info "#{source.name}: listening to changes feed from seq: #{seq}"
 
-      unless @request
-        url      = File.join(source.root, '_changes')
-        @request = EventMachine::HttpRequest.new(url, :inactivity_timeout => INACTIVITY_TIMEOUT)
-      end
+      url = File.join(source.root, '_changes')
 
       # Make sure the request has the latest sequence
       query = {:since => seq, :feed => 'continuous', :heartbeat => COUCHDB_HEARTBEAT * 1000}
-      @http = @request.get(:query => query, :keepalive => true)
-
-      # Handle incoming data
-      @http.stream do |chunk|
+      
+      # Perform the actual request for chunked content
+      @http.get_content(url, query) do |chunk|
         # logger.debug chunk.strip
         @parser << chunk
       end
 
-      # Handle error events
-      @http.errback do |err|
-        logger.error "Connection Failed: #{err.error}, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
-        EM.add_timer RECONNECT_TIMEOUT do
-          perform_request
-        end
-      end
+    rescue HTTPClient::ConnectTimeoutError, HTTPCLIENT::TimeoutError => e
+      logger.error "#{source.name}: connection failed: #{e.message}, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
+      wait RECONNECT_TIMEOUT
+      retry
     end
 
     def prepare_parser
@@ -103,10 +97,10 @@ module CouchTap
         database.transaction do
           if row['deleted']
             # Delete all the entries
-            logger.info "Received delete seq. #{seq} id: #{id}"
+            logger.info "#{source.name}: received DELETE seq. #{seq} id: #{id}"
             handlers.each{ |handler| handler.delete('_id' => id) }
           else
-            logger.info "Received change seq. #{seq} id: #{id}"
+            logger.info "#{source.name}: received CHANGE seq. #{seq} id: #{id}"
             doc = fetch_document(id)
             find_document_handlers(doc).each do |handler|
               # Delete all previous entries of doc, then re-create
@@ -119,7 +113,7 @@ module CouchTap
         end # transaction
 
       elsif row['last_seq']
-        logger.info "Received last seq: #{row['last_seq']}"
+        logger.info "#{source.name}: received last seq: #{row['last_seq']}"
       end
     end
 

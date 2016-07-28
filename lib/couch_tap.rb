@@ -2,8 +2,8 @@
 # Low level requirements
 require 'sequel'
 require 'couchrest'
-require 'em-http'
 require 'yajl'
+require 'httpclient'
 require 'logger'
 require 'active_support/inflector'
 require 'active_support/core_ext/object/blank'
@@ -26,11 +26,13 @@ module CouchTap
   end
 
   def start
-    EventMachine.run do
-      @changes.each do |changes|
-        changes.start
+    threads = []
+    @changes.each do |changes|
+      threads << Thread.new(changes) do |c|
+        c.start
       end
     end
+    threads.each {|thr| thr.join}
   end
 
   # Provide some way to handle messages
