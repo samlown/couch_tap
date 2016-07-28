@@ -73,10 +73,14 @@ module CouchTap
       # Make sure the request has the latest sequence
       query = {:since => seq, :feed => 'continuous', :heartbeat => COUCHDB_HEARTBEAT * 1000}
       
-      # Perform the actual request for chunked content
-      @http.get_content(url, query) do |chunk|
-        # logger.debug chunk.strip
-        @parser << chunk
+      while true do
+        # Perform the actual request for chunked content
+        @http.get_content(url, query) do |chunk|
+          # logger.debug chunk.strip
+          @parser << chunk
+        end
+        logger.error "#{source.name}: connection ended, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
+        wait RECONNECT_TIMEOUT
       end
 
     rescue HTTPClient::TimeoutError, HTTPClient::BadResponseError => e
