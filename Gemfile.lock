@@ -46,6 +46,3 @@ DEPENDENCIES
   couch_tap!
   mocha
   sqlite3
-
-BUNDLED WITH
-   1.12.5

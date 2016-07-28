@@ -64,6 +64,11 @@ module CouchTap
       logger.info "#{source.name}: listening to changes feed from seq: #{seq}"
 
       url = File.join(source.root, '_changes')
+      uri = URI.parse(url)
+      # Authenticate?
+      if uri.user.present? && uri.password.present?
+        http.set_auth(source.root, uri.user, uri.password)
+      end
 
       # Make sure the request has the latest sequence
       query = {:since => seq, :feed => 'continuous', :heartbeat => COUCHDB_HEARTBEAT * 1000}
@@ -74,7 +79,7 @@ module CouchTap
         @parser << chunk
       end
 
-    rescue HTTPClient::ConnectTimeoutError, HTTPCLIENT::TimeoutError => e
+    rescue HTTPClient::ConnectTimeoutError, HTTPClient::TimeoutError => e
       logger.error "#{source.name}: connection failed: #{e.message}, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
       wait RECONNECT_TIMEOUT
       retry
