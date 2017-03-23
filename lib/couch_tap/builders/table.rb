@@ -81,7 +81,7 @@ module CouchTap
 
       def execute
         # Insert the record and prepare ID for sub-tables
-        id = dataset.insert(attributes)
+        dataset.insert(attributes)
         set_attribute(primary_keys.last, id) unless id.blank?
 
         # Now go through each collection entry
