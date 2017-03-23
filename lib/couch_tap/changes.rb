@@ -119,8 +119,8 @@ module CouchTap
               handler.insert(doc)
             end
           end
-          delta = Time.now - t1
-          logger.info "#{source.name}: received #{action} seq: #{seq} id: #{id} - (#{delta} seg.)"
+          delta = (Time.now - t1) * 1000
+          logger.info "#{source.name}: received #{action} seq: #{seq} id: #{id} - (#{delta} ms.)"
 
           update_sequence(seq)
         end # transaction
