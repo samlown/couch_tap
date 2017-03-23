@@ -71,8 +71,9 @@ module CouchTap
       end
 
       # Make sure the request has the latest sequence
-      query = {:since => seq, :feed => 'continuous', :heartbeat => COUCHDB_HEARTBEAT * 1000}
-      
+      query = {:since => seq, :feed => 'continuous', :heartbeat => COUCHDB_HEARTBEAT * 1000,
+               :include_docs => true}
+
       while true do
         # Perform the actual request for chunked content
         @http.get_content(url, query) do |chunk|
@@ -96,6 +97,7 @@ module CouchTap
     end
 
     def process_row(row)
+      t1 = Time.now
       id  = row['id']
 
       # Sometimes CouchDB will send an update to keep the connection alive
@@ -105,18 +107,20 @@ module CouchTap
         # Wrap the whole request in a transaction
         database.transaction do
           if row['deleted']
+            action = 'DELETE'
             # Delete all the entries
-            logger.info "#{source.name}: received DELETE seq. #{seq} id: #{id}"
             handlers.each{ |handler| handler.delete('_id' => id) }
           else
-            logger.info "#{source.name}: received CHANGE seq. #{seq} id: #{id}"
-            doc = fetch_document(id)
+            action = 'CHANGE'
+            doc = row['doc']
             find_document_handlers(doc).each do |handler|
               # Delete all previous entries of doc, then re-create
               handler.delete(doc)
               handler.insert(doc)
             end
           end
+          delta = (Time.now - t1) * 1000
+          logger.info "#{source.name}: received #{action} seq: #{seq} id: #{id} - (#{delta} ms.)"
 
           update_sequence(seq)
         end # transaction
