@@ -32,16 +32,15 @@ module Builders
 
     def test_defining_table_with_items
       @parent.expects(:data).returns({'items' => [{'name' => 'Item 1'}]})
-      block = lambda do
-        # nothing
-      end
-      CouchTap::Builders::Table.expects(:new).with(@parent, :invoice_items, {:data => {'name' => 'Item 1'}}, &block)
+      CouchTap::Builders::Table.expects(:new).with(@parent, :invoice_items, {:data => {'name' => 'Item 1'}})
       @collection = CouchTap::Builders::Collection.new(@parent, :items) do
-        table :invoice_items, &block
+        table :invoice_items do
+          # Nothing
+        end
       end
     end
 
-    def test_defining_table_with_items
+    def test_defining_table_with_items_using_symbols
       @parent.expects(:data).returns({'items' => [{:name => 'Item 1'}, {:name => 'Item 2'}]})
       CouchTap::Builders::Table.expects(:new).twice
       @collection = CouchTap::Builders::Collection.new(@parent, :items) do
