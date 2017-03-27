@@ -83,7 +83,7 @@ class ChangesTest < Test::Unit::TestCase
 
   def build_sample_config
     @changes = CouchTap::Changes.new(TEST_DB_ROOT) do
-      database "sqlite:/"
+      database db: "sqlite:/"
       document :type => 'Foo' do
       end
       document :type => 'Bar' do

@@ -5,7 +5,7 @@ module Destroyers
   class TableTest < Test::Unit::TestCase
 
     def setup
-      @executor = CouchTap::QueryExecutor.new('sqlite:/')
+      @executor = CouchTap::QueryExecutor.new(db: 'sqlite:/')
       @database = initialize_database(@executor.database)
       @changes = mock()
       @changes.stubs(:database).returns(@database)
