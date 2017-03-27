@@ -6,6 +6,7 @@ class ChangesTest < Test::Unit::TestCase
   def setup
     reset_test_db!
     build_sample_config
+    @executor = @changes.instance_variable_get(:@query_executor)
   end
 
   def test_basic_init
@@ -31,8 +32,8 @@ class ChangesTest < Test::Unit::TestCase
     @changes.expects(:fetch_document).with('1234').returns(doc)
 
     handler = @changes.handlers.first
-    handler.expects(:delete).with(doc)
-    handler.expects(:insert).with(doc)
+    handler.expects(:delete).with(doc, @executor)
+    handler.expects(:insert).with(doc, @executor)
 
     @changes.send(:process_row, row)
 
@@ -62,7 +63,7 @@ class ChangesTest < Test::Unit::TestCase
     row = {'seq' => 9, 'id' => '1234', 'deleted' => true}
 
     @changes.handlers.each do |handler|
-      handler.expects(:delete).with({'_id' => row['id']})
+      handler.expects(:delete).with({'_id' => row['id']}, @executor)
     end
 
     @changes.send(:process_row, row)
