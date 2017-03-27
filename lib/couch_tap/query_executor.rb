@@ -28,6 +28,10 @@ module CouchTap
       return (row ? row[:seq] : 0)
     end
 
+    def transaction(&block)
+      database.transaction &block
+    end
+
     private 
 
     def create_sequence_table(name)
