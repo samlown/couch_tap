@@ -71,6 +71,7 @@ module CouchTap
       end
 
       # Make sure the request has the latest sequence
+      # TODO transfer seq owhership to the query executor and just grab the value here
       query = {:since => seq, :feed => 'continuous', :heartbeat => COUCHDB_HEARTBEAT * 1000,
                :include_docs => true}
 
@@ -105,7 +106,7 @@ module CouchTap
         seq = row['seq']
 
         # Wrap the whole request in a transaction
-        database.transaction do
+        @query_executor.transaction do
           if row['deleted']
             # Delete all the entries
             logger.info "#{source.name}: received DELETE seq. #{seq} id: #{id}"
