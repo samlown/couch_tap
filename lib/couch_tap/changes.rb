@@ -128,10 +128,6 @@ module CouchTap
       end
     end
 
-    def fetch_document(id)
-      source.get(id)
-    end
-
     def find_document_handlers(document)
       @handlers.reject{ |row| !row.handles?(document) }
     end

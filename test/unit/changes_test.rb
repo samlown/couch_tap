@@ -27,9 +27,8 @@ class ChangesTest < Test::Unit::TestCase
   end
 
   def test_inserting_rows
-    row = {'seq' => 1, 'id' => '1234'}
     doc = {'_id' => '1234', 'type' => 'Foo', 'name' => 'Some Document'}
-    @changes.expects(:fetch_document).with('1234').returns(doc)
+    row = {'seq' => 1, 'id' => '1234', 'doc' => doc}
 
     handler = @changes.handlers.first
     handler.expects(:delete).with(doc, @executor)
@@ -42,9 +41,8 @@ class ChangesTest < Test::Unit::TestCase
   end
 
   def test_inserting_rows_with_mutiple_filters
-    row = {'seq' => 3, 'id' => '1234'}
     doc = {'_id' => '1234', 'type' => 'Bar', 'special' => true, 'name' => 'Some Document'}
-    @changes.expects(:fetch_document).with('1234').returns(doc)
+    row = {'seq' => 3, 'id' => '1234', 'doc' => doc}
 
     handler = @changes.handlers[0]
     handler.expects(:insert).never
