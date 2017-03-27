@@ -6,7 +6,7 @@ module CouchTap
     INACTIVITY_TIMEOUT = 70
     RECONNECT_TIMEOUT  = 15
 
-    attr_reader :source, :database, :schemas, :handlers
+    attr_reader :source, :schemas, :handlers
 
     attr_accessor :seq
 
@@ -33,10 +33,10 @@ module CouchTap
     # or returns a previous definition.
     def database(opts = nil)
       if opts
-        @database ||= Sequel.connect(opts)
-        find_or_create_sequence_number
+        @query_executor = QueryExecutor.new(opts)
+        self.seq = @query_executor.find_or_create_sequence_number(source.name)
       end
-      @database
+      @query_executor.database
     end
 
     def document(filter = {}, &block)
@@ -122,7 +122,7 @@ module CouchTap
           delta = (Time.now - t1) * 1000
           logger.info "#{source.name}: received #{action} seq: #{seq} id: #{id} - (#{delta} ms.)"
 
-          update_sequence(seq)
+          self.seq = @query_executor.update_sequence(seq)
         end # transaction
 
       elsif row['last_seq']
@@ -136,28 +136,6 @@ module CouchTap
 
     def find_document_handlers(document)
       @handlers.reject{ |row| !row.handles?(document) }
-    end
-
-    def find_or_create_sequence_number
-      create_sequence_table unless database.table_exists?(:couch_sequence)
-      row = database[:couch_sequence].where(:name => source.name).first
-      self.seq = (row ? row[:seq] : 0)
-    end
-
-    def update_sequence(seq)
-      database[:couch_sequence].where(:name => source.name).update(:seq => seq)
-      self.seq = seq
-    end
-
-    def create_sequence_table
-      database.create_table :couch_sequence do
-        String :name, :primary_key => true
-        Bignum :seq, :default => 0
-        DateTime :created_at
-        DateTime :updated_at
-      end
-      # Add first row
-      database[:couch_sequence].insert(:name => source.name)
     end
 
     def logger
