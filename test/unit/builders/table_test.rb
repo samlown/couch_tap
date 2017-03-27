@@ -4,7 +4,7 @@ module Builders
   class TableTest < Test::Unit::TestCase
 
     def setup
-      @executor = CouchTap::QueryExecutor.new('sqlite:/')
+      @executor = CouchTap::QueryExecutor.new(db: 'sqlite:/')
       @database = initialize_database(@executor.database)
       @changes = mock()
       @changes.stubs(:database).returns(@database)
@@ -134,7 +134,7 @@ module Builders
       @handler.document = doc
       @row = CouchTap::Builders::Table.new @handler, :items do
         collection :groups do
-          table :groups, primary_key: 'group_id' do
+          table :groups do
             # Nothing
           end
         end

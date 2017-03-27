@@ -6,9 +6,9 @@ module CouchTap
 
     attr_reader :database
 
-    def initialize(db)
-      @database = Sequel.connect(db)
-      @batch_size = 1
+    def initialize(data)
+      @database = Sequel.connect(data.fetch(:db))
+      @batch_size = data.fetch(:batch_size, 1)
       @buffer = QueryBuffer.new
       @ready_to_run = false
       @processing_row = false
