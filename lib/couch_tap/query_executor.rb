@@ -1,4 +1,6 @@
 
+require 'couch_tap/query_buffer'
+
 module CouchTap
   class QueryExecutor
 
@@ -6,14 +8,24 @@ module CouchTap
 
     def initialize(db)
       @database = Sequel.connect(db)
+      @batch_size = 1
+      @buffer = QueryBuffer.new
+      @ready_to_run = false
+      @processing_row = false
     end
 
-    def insert(db, attributes)
-      database[db].insert(attributes)
+    def insert(db, top_level, id, attributes)
+      raise "Cannot insert outside a row" unless @processing_row
+      if @buffer.insert(db, top_level, id, attributes) >= @batch_size
+        @ready_to_run = true
+      end
     end
 
-    def delete(db, filter)
-      database[db].where(filter).delete
+    def delete(db, top_level, filter)
+      raise "Cannot delete outside a row" unless @processing_row
+      if @buffer.delete(db, top_level, filter.keys.first, filter.values.first) >= 1
+        @ready_to_run = true
+      end
     end
 
     def update_sequence(seq)
@@ -28,8 +40,24 @@ module CouchTap
       return (row ? row[:seq] : 0)
     end
 
-    def transaction(&block)
-      database.transaction &block
+    def row(&block)
+      @processing_row = true
+      yield
+      @processing_row = false
+      if @ready_to_run
+        @database.transaction do
+          @buffer.each do |entity|
+            if entity.any_delete?
+              database[entity.name].where({ entity.primary_key => entity.deletes }).delete
+            end
+            if entity.any_insert?
+              database[entity.name].import(entity.insert_keys, entity.insert_values)
+            end
+          end
+        end
+        @buffer.clear
+        @ready_to_run = false
+      end
     end
 
     private 

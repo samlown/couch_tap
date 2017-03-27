@@ -106,7 +106,7 @@ module CouchTap
         seq = row['seq']
 
         # Wrap the whole request in a transaction
-        @query_executor.transaction do
+        @query_executor.row do
           if row['deleted']
             # Delete all the entries
             logger.info "#{source.name}: received DELETE seq. #{seq} id: #{id}"

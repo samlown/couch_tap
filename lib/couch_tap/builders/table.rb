@@ -82,7 +82,7 @@ module CouchTap
       def execute(query_executor)
         # Insert the record and prepare ID for sub-tables
         # dataset.insert(attributes§)
-        query_executor.insert(name, attributes)
+        query_executor.insert(name, parent.is_a?(DocumentHandler), id, attributes)
 
         # TODO remove this?
         set_attribute(primary_keys.last, id) unless id.blank?

@@ -63,7 +63,9 @@ module Destroyers
       @database[:items].insert(:name => "Test Item 1", :item_id => "12345")
       assert_equal @database[:items].count, 1, "Did not create sample row correctly!"
       @row = CouchTap::Destroyers::Table.new(@handler, :items)
-      @row.execute(@executor)
+      @executor.row do
+        @row.execute(@executor)
+      end
       assert_equal 0, @database[:items].count
     end
 
@@ -79,7 +81,9 @@ module Destroyers
         end
       end
       @col.expects(:execute).twice
-      @row.execute(@executor)
+      @executor.row do
+        @row.execute(@executor)
+      end
     end
 
     def test_column_returns_nil
