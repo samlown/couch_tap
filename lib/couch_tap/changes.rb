@@ -107,21 +107,18 @@ module CouchTap
         # Wrap the whole request in a transaction
         database.transaction do
           if row['deleted']
-            action = 'DELETE'
             # Delete all the entries
-            handlers.each{ |handler| handler.delete('_id' => id) }
+            logger.info "#{source.name}: received DELETE seq. #{seq} id: #{id}"
+            handlers.each{ |handler| handler.delete({ '_id' => id }, @query_executor) }
           else
-            action = 'CHANGE'
             doc = row['doc']
             find_document_handlers(doc).each do |handler|
               # Delete all previous entries of doc, then re-create
-              handler.delete(doc)
-              handler.insert(doc)
+              handler.delete(doc, @query_executor)
+              handler.insert(doc, @query_executor)
             end
+            logger.info "#{source.name}: received CHANGE seq: #{seq} id: #{id})"
           end
-          delta = (Time.now - t1) * 1000
-          logger.info "#{source.name}: received #{action} seq: #{seq} id: #{id} - (#{delta} ms.)"
-
           self.seq = @query_executor.update_sequence(seq)
         end # transaction
 
