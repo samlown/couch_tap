@@ -30,15 +30,16 @@ module CouchTap
     private
 
     def get_or_create(entity, top_level)
-      unless @buffer.has_key?(entity)
-        @buffer[entity] = Entity.new(entity, top_level)
+      item = @buffer[entity] ||= Entity.new(entity, top_level)
+      if item.top_level != top_level
+        raise ArgumentError, "Cannot have entity #{entity} both as top level and as a dependent entity"
       end
-      @buffer[entity]
+      return item
     end
   end
 
   class Entity
-    attr_reader :name, :primary_key
+    attr_reader :name, :primary_key, :top_level
 
     def initialize(name, top_level)
       @deletes = Set.new
@@ -62,6 +63,9 @@ module CouchTap
       end
       @primary_key = key
       @deletes << id
+      if top_level
+        @inserts.delete id
+      end
     end
 
     def deletes

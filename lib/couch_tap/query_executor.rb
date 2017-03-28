@@ -8,6 +8,7 @@ module CouchTap
 
     def initialize(data)
       @database = Sequel.connect(data.fetch(:db))
+      @database.loggers << logger
       @batch_size = data.fetch(:batch_size, 1)
       @buffer = QueryBuffer.new
       @ready_to_run = false
@@ -53,7 +54,7 @@ module CouchTap
               logger.info "#{entity.name}: #{entity.deletes.size} rows deleted."
             end
             if entity.any_insert?
-              keys = columns(entity)
+              keys = columns(entity.name)
               values = entity.insert_values(keys)
               database[entity.name].import(keys, values)
               logger.info "#{entity.name}:  #{values.size} rows inserted."
@@ -61,7 +62,7 @@ module CouchTap
           end
         end
 
-        update_sequence(seq)
+        #update_sequence(seq)
         logger.info "#{@name} sequence: #{seq}"
 
         @buffer.clear
@@ -74,7 +75,8 @@ module CouchTap
     # TODO unite this cache and the one in changes.rb:48
     # in a common one
     def columns(table_name)
-      @schemas[table_name] ||= Schema.new(database, table_name)
+      schema = @schemas[table_name] ||= Schema.new(database, table_name)
+      schema.column_names
     end
 
     def create_sequence_table(name)

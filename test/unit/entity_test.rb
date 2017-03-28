@@ -92,5 +92,13 @@ class EntityTest < Test::Unit::TestCase
       entity.delete('another_key', 123)
     end
   end
+
+  def test_delete_removes_from_insertions_list_if_top_level
+    entity = CouchTap::Entity.new('dummy', true)
+    entity.insert(123, a: 1, b: 'c')
+    entity.delete('dummy_id', 123)
+
+    refute entity.any_insert?
+  end
 end
 
