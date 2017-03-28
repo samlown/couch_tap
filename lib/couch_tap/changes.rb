@@ -1,14 +1,11 @@
 
 module CouchTap
   class Changes
-
     COUCHDB_HEARTBEAT  = 30
     INACTIVITY_TIMEOUT = 70
     RECONNECT_TIMEOUT  = 15
 
     attr_reader :source, :schemas, :handlers
-
-    attr_accessor :seq
 
     # Start a new Changes instance by connecting to the provided
     # CouchDB to see if the database exists.
@@ -33,8 +30,7 @@ module CouchTap
     # or returns a previous definition.
     def database(opts = nil)
       if opts
-        @query_executor = QueryExecutor.new(opts)
-        self.seq = @query_executor.find_or_create_sequence_number(source.name)
+        @query_executor = QueryExecutor.new(source.name, opts)
       end
       @query_executor.database
     end
@@ -54,8 +50,13 @@ module CouchTap
     # By this stage we should have a sequence id so we know where to start from
     # and all the filters should have been prepared.
     def start
+      raise "Cannot work without a DB destination!!" unless @query_executor
       prepare_parser
       perform_request
+    end
+
+    def seq
+      @query_executor.seq
     end
 
     protected
@@ -71,7 +72,6 @@ module CouchTap
       end
 
       # Make sure the request has the latest sequence
-      # TODO transfer seq owhership to the query executor and just grab the value here
       query = {:since => seq, :feed => 'continuous', :heartbeat => COUCHDB_HEARTBEAT * 1000,
                :include_docs => true}
 
@@ -98,17 +98,13 @@ module CouchTap
     end
 
     def process_row(row)
-      id  = row['id']
       # Sometimes CouchDB will send an update to keep the connection alive
-      if id
-        seq = row['seq']
-
+      if id  = row['id']
         # Wrap the whole request in a transaction
-        @query_executor.row do
+        @query_executor.row row['seq'] do
           if row['deleted']
             # Delete all the entries
             handlers.each{ |handler| handler.delete({ '_id' => id }, @query_executor) }
-            # logger.info "#{doc['type']}: received DELETE seq. #{seq} id: #{id}"
           else
             doc = row['doc']
             find_document_handlers(doc).each do |handler|
@@ -116,12 +112,8 @@ module CouchTap
               handler.delete(doc, @query_executor)
               handler.insert(doc, @query_executor)
             end
-            # logger.info "#{doc['type']}: received CHANGE seq: #{seq} id: #{id})"
           end
-          self.seq = seq
-          seq
         end # transaction
-
       elsif row['last_seq']
         logger.info "#{source.name}: received last seq: #{row['last_seq']}"
       end

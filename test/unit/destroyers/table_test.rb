@@ -5,7 +5,7 @@ module Destroyers
   class TableTest < Test::Unit::TestCase
 
     def setup
-      @executor = CouchTap::QueryExecutor.new(db: 'sqlite:/')
+      @executor = CouchTap::QueryExecutor.new('changes', db: 'sqlite:/')
       @database = initialize_database(@executor.database)
       @changes = mock()
       @changes.stubs(:database).returns(@database)
@@ -63,7 +63,7 @@ module Destroyers
       @database[:items].insert(:name => "Test Item 1", :item_id => "12345")
       assert_equal @database[:items].count, 1, "Did not create sample row correctly!"
       @row = CouchTap::Destroyers::Table.new(@handler, :items)
-      @executor.row do
+      @executor.row 1 do
         @row.execute(@executor)
       end
       assert_equal 0, @database[:items].count
@@ -81,7 +81,7 @@ module Destroyers
         end
       end
       @col.expects(:execute).twice
-      @executor.row do
+      @executor.row 1 do
         @row.execute(@executor)
       end
     end

@@ -66,6 +66,7 @@ class ChangesTest < Test::Unit::TestCase
 
     @changes.send(:process_row, row)
 
+    p @changes.database[:couch_sequence].to_a
     assert_equal @changes.database[:couch_sequence].first[:seq], 9
   end
 

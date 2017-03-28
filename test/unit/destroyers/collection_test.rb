@@ -5,7 +5,7 @@ module Destroyers
 
     def setup
       @parent = mock()
-      @executor = CouchTap::QueryExecutor.new(db: 'sqlite:/')
+      @executor = CouchTap::QueryExecutor.new('changes', db: 'sqlite:/')
     end
 
     def test_initialize_collection
@@ -51,6 +51,5 @@ module Destroyers
       @table.expects(:execute)
       @collection.execute(@executor)
     end
-
   end
 end

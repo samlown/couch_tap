@@ -4,9 +4,9 @@ require 'couch_tap/query_buffer'
 module CouchTap
   class QueryExecutor
 
-    attr_reader :database
+    attr_reader :database, :seq
 
-    def initialize(data)
+    def initialize(name, data)
       @database = Sequel.connect(data.fetch(:db))
       @database.loggers << logger
       @batch_size = data.fetch(:batch_size, 1)
@@ -14,6 +14,9 @@ module CouchTap
       @ready_to_run = false
       @processing_row = false
       @schemas = {}
+      @name = name
+
+      @seq = find_or_create_sequence_number(name)
     end
 
     def insert(db, top_level, id, attributes)
@@ -30,21 +33,10 @@ module CouchTap
       end
     end
 
-    def update_sequence(seq)
-      database[:couch_sequence].where(:name => @name).update(:seq => seq)
-      return seq
-    end
-
-    def find_or_create_sequence_number(name)
-      @name = name
-      create_sequence_table(name) unless database.table_exists?(:couch_sequence)
-      row = database[:couch_sequence].where(:name => name).first
-      return (row ? row[:seq] : 0)
-    end
-
-    def row(&block)
+    def row(seq, &block)
+      @seq = seq
       @processing_row = true
-      seq = yield
+      yield
       @processing_row = false
       if @ready_to_run
         @database.transaction do
@@ -62,7 +54,7 @@ module CouchTap
           end
         end
 
-        #update_sequence(seq)
+        update_sequence(seq)
         logger.info "#{@name} sequence: #{seq}"
 
         @buffer.clear
@@ -77,6 +69,16 @@ module CouchTap
     def columns(table_name)
       schema = @schemas[table_name] ||= Schema.new(database, table_name)
       schema.column_names
+    end
+
+    def find_or_create_sequence_number(name)
+      create_sequence_table(name) unless database.table_exists?(:couch_sequence)
+      row = database[:couch_sequence].where(:name => name).first
+      return (row ? row[:seq] : 0)
+    end
+
+    def update_sequence(seq)
+      database[:couch_sequence].where(:name => @name).update(:seq => seq)
     end
 
     def create_sequence_table(name)
