@@ -12,6 +12,7 @@ module CouchTap
       @buffer = QueryBuffer.new
       @ready_to_run = false
       @processing_row = false
+      @schemas = {}
     end
 
     def insert(db, top_level, id, attributes)
@@ -52,8 +53,10 @@ module CouchTap
               logger.info "#{entity.name}: #{entity.deletes.size} rows deleted."
             end
             if entity.any_insert?
-              database[entity.name].import(entity.insert_keys, entity.insert_values)
-              logger.info "#{entity.name}:  #{entity.insert_values.size} rows inserted."
+              keys = columns(entity)
+              values = entity.insert_values(keys)
+              database[entity.name].import(keys, values)
+              logger.info "#{entity.name}:  #{values.size} rows inserted."
             end
           end
         end
@@ -66,7 +69,13 @@ module CouchTap
       end
     end
 
-    private 
+    private
+
+    # TODO unite this cache and the one in changes.rb:48
+    # in a common one
+    def columns(table_name)
+      @schemas[table_name] ||= Schema.new(database, table_name)
+    end
 
     def create_sequence_table(name)
       database.create_table :couch_sequence do

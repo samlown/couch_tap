@@ -68,14 +68,10 @@ module CouchTap
       @deletes.to_a
     end
 
-    def insert_values
+    def insert_values(keys)
       (@top_level ? @inserts.values : @inserts).map do |data|
-        insert_keys.map { |k| data[k] }
+        keys.map { |k| data[k] }
       end
-    end
-
-    def insert_keys
-      @insert_keys ||= (@top_level ? @inserts.first[1] : @inserts.first).keys
     end
 
     def any_delete?
