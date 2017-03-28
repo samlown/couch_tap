@@ -23,7 +23,7 @@ module CouchTap
 
     def delete(db, top_level, filter)
       raise "Cannot delete outside a row" unless @processing_row
-      if @buffer.delete(db, top_level, filter.keys.first, filter.values.first) >= 1
+      if @buffer.delete(db, top_level, filter.keys.first, filter.values.first) >= @batch_size
         @ready_to_run = true
       end
     end
@@ -42,19 +42,25 @@ module CouchTap
 
     def row(&block)
       @processing_row = true
-      yield
+      seq = yield
       @processing_row = false
       if @ready_to_run
         @database.transaction do
           @buffer.each do |entity|
             if entity.any_delete?
               database[entity.name].where({ entity.primary_key => entity.deletes }).delete
+              logger.info "#{entity.name}: #{entity.deletes.size} rows deleted."
             end
             if entity.any_insert?
               database[entity.name].import(entity.insert_keys, entity.insert_values)
+              logger.info "#{entity.name}:  #{entity.insert_values.size} rows inserted."
             end
           end
         end
+
+        update_sequence(seq)
+        logger.info "#{@name} sequence: #{seq}"
+
         @buffer.clear
         @ready_to_run = false
       end
@@ -71,6 +77,10 @@ module CouchTap
       end
       # Add first row
       database[:couch_sequence].insert(:name => name)
+    end
+
+    def logger
+      CouchTap.logger
     end
   end
 end

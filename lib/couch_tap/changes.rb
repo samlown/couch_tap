@@ -98,9 +98,7 @@ module CouchTap
     end
 
     def process_row(row)
-      t1 = Time.now
       id  = row['id']
-
       # Sometimes CouchDB will send an update to keep the connection alive
       if id
         seq = row['seq']
@@ -109,8 +107,8 @@ module CouchTap
         @query_executor.row do
           if row['deleted']
             # Delete all the entries
-            logger.info "#{source.name}: received DELETE seq. #{seq} id: #{id}"
             handlers.each{ |handler| handler.delete({ '_id' => id }, @query_executor) }
+            # logger.info "#{doc['type']}: received DELETE seq. #{seq} id: #{id}"
           else
             doc = row['doc']
             find_document_handlers(doc).each do |handler|
@@ -118,9 +116,10 @@ module CouchTap
               handler.delete(doc, @query_executor)
               handler.insert(doc, @query_executor)
             end
-            logger.info "#{source.name}: received CHANGE seq: #{seq} id: #{id})"
+            # logger.info "#{doc['type']}: received CHANGE seq: #{seq} id: #{id})"
           end
-          self.seq = @query_executor.update_sequence(seq)
+          self.seq = seq
+          seq
         end # transaction
 
       elsif row['last_seq']
