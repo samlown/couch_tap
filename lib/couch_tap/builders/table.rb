@@ -79,15 +79,18 @@ module CouchTap
 
       #### Support Methods
 
-      def execute
+      def execute(query_executor)
         # Insert the record and prepare ID for sub-tables
-        id = dataset.insert(attributes)
+        # dataset.insert(attributes§)
+        query_executor.insert(name, parent.is_a?(DocumentHandler), id, attributes)
+
+        # TODO remove this?
         set_attribute(primary_keys.last, id) unless id.blank?
 
         # Now go through each collection entry
         if @_collections.length > 0
           @_collections.each do |collection|
-            collection.execute
+            collection.execute(query_executor)
           end
         end
       end
@@ -97,15 +100,6 @@ module CouchTap
 
       def schema
         handler.schema(name)
-      end
-
-      def dataset
-        database[name]
-      end
-
-      def find_existing_row_and_set_attributes
-        row = dataset.where(key_filter).first
-        attributes.update(row) if row.present?
       end
 
       # Set the primary keys in the attributes so that the insert request

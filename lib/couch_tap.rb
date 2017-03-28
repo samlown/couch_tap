@@ -16,7 +16,7 @@ require 'couch_tap/builders/collection'
 require 'couch_tap/builders/table'
 require 'couch_tap/destroyers/collection'
 require 'couch_tap/destroyers/table'
-
+require 'couch_tap/query_executor'
 
 module CouchTap
   extend self

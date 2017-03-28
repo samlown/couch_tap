@@ -30,11 +30,11 @@ module CouchTap
         instance_eval(&block) if block_given?
       end
 
-      def execute
-        dataset = handler.database[name]
-        dataset.where(key_filter).delete
+      def execute(query_executor)
+        query_executor.delete(name, parent.is_a?(DocumentHandler), key_filter)
+
         @_collections.each do |collection|
-          collection.execute
+          collection.execute(query_executor)
         end
       end
 

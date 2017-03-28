@@ -4,7 +4,8 @@ module Builders
   class TableTest < Test::Unit::TestCase
 
     def setup
-      @database = create_database
+      @executor = CouchTap::QueryExecutor.new(db: 'sqlite:/')
+      @database = initialize_database(@executor.database)
       @changes = mock()
       @changes.stubs(:database).returns(@database)
       @changes.stubs(:schema).returns(CouchTap::Schema.new(@database, :items))
@@ -65,7 +66,7 @@ module Builders
       @row = CouchTap::Builders::Table.new(@parent, :group_items, :primary_key => false, :data => doc['item_ids'][0]) do
         column :item_id, data
       end
-      @row.execute
+      @executor.row { @row.execute(@executor) }
       assert_equal @database[:group_items].first, {:group_id => '1234', :item_id => 'i1234'}
     end
 
@@ -73,7 +74,7 @@ module Builders
       doc = {'type' => 'Item', 'name' => "Some Item", '_id' => '1234'}
       @handler.document = doc
       @row = CouchTap::Builders::Table.new(@handler, :items)
-      @row.execute
+      @executor.row { @row.execute(@executor) }
 
       items = @database[:items]
       item = items.first
@@ -81,12 +82,30 @@ module Builders
       assert_equal item[:name], "Some Item"
     end
 
+    def test_reuses_id
+      doc = {'type' => 'Item', 'name' => "Some Item", '_id' => '1234'}
+      @handler.document = doc
+      @row = CouchTap::Builders::Table.new(@handler, :items)
+      @executor.row { @row.execute(@executor) }
+
+      items = @database[:items]
+      item = items.first
+      assert_equal items.where(:item_id => '1234').count, 1
+      assert_equal item[:name], "Some Item"
+
+      row = CouchTap::Builders::Table.new(@handler, :items)
+      assert_raises Sequel::UniqueConstraintViolation do
+        @executor.row { row.execute(@executor) }
+      end
+      assert_equal items.where(item_id: '1234').count, 1
+    end
+
     def test_execute_with_new_row_with_time
       time = Time.now
       doc = {'type' => 'Item', 'name' => "Some Item", '_id' => '1234', 'created_at' => time.to_s}
       @handler.document = doc
       @row = CouchTap::Builders::Table.new(@handler, :items)
-      @row.execute
+      @executor.row { @row.execute(@executor) }
       items = @database[:items]
       item = items.first
       assert item[:created_at].is_a?(Time)
@@ -107,19 +126,23 @@ module Builders
 
     def test_collections_are_executed
       @database.create_table :groups do
-        String :group_id
+        String :item_id
         String :name
       end
       doc = {'type' => 'Item', 'name' => "Some Group", '_id' => '1234',
-        'items' => [{'index' => 1, 'name' => 'Item 1'}]}
+        'groups' => [{ 'group_id' => 1, 'name' => 'Group 1'}, {'group_id' => 2, 'name' => 'Group 2'}]}
       @handler.document = doc
-      @row = CouchTap::Builders::Table.new @handler, :groups do
-        collection :items do
-          # Nothing
+      @row = CouchTap::Builders::Table.new @handler, :items do
+        collection :groups do
+          table :groups do
+            # Nothing
+          end
         end
       end
-      @row.instance_eval("@_collections.first.expects(:execute)")
-      @row.execute
+      @executor.row { @row.execute(@executor) }
+
+      assert_equal @database[:items].where(item_id: '1234').count, 1
+      assert_equal @database[:groups].where(item_id: '1234').count, 2
     end
 
 
@@ -129,7 +152,7 @@ module Builders
       @row = CouchTap::Builders::Table.new @handler, :items do
         column :name, :full_name
       end
-      @row.execute
+      @executor.row { @row.execute(@executor) }
 
       data = @database[:items].first
       assert_equal data[:name], doc['full_name']
@@ -141,7 +164,7 @@ module Builders
       @row = CouchTap::Builders::Table.new @handler, :items do
         column :name, "Force the name"
       end
-      @row.execute
+      @executor.row { @row.execute(@executor) }
 
       data = @database[:items].first
       assert_equal data[:name], "Force the name"
@@ -153,7 +176,7 @@ module Builders
       @row = CouchTap::Builders::Table.new @handler, :items do
         column :name, nil
       end
-      @row.execute
+      @executor.row { @row.execute(@executor) }
       data = @database[:items].first
       assert_equal data[:name], nil
     end
@@ -162,7 +185,7 @@ module Builders
       doc = {'type' => 'Item', 'name' => 'Some Item Name', 'created_at' => '', '_id' => '1234'}
       @handler.document = doc
       @row = CouchTap::Builders::Table.new @handler, :items
-      @row.execute
+      @executor.row { @row.execute(@executor) }
       data = @database[:items].first
       assert_equal data[:created_at], nil
     end
@@ -171,7 +194,7 @@ module Builders
       doc = {'type' => 'Item', 'count' => 3, '_id' => '1234'}
       @handler.document = doc
       @row = CouchTap::Builders::Table.new @handler, :items
-      @row.execute
+      @executor.row { @row.execute(@executor) }
       data = @database[:items].first
       assert_equal data[:count], 3
     end
@@ -180,7 +203,7 @@ module Builders
       doc = {'type' => 'Item', 'count' => '1', '_id' => '1234'}
       @handler.document = doc
       @row = CouchTap::Builders::Table.new @handler, :items
-      @row.execute
+      @executor.row { @row.execute(@executor) }
       data = @database[:items].first
       assert_equal data[:count], 1
     end
@@ -189,7 +212,7 @@ module Builders
       doc = {'type' => 'Item', 'price' => 1.2, '_id' => '1234'}
       @handler.document = doc
       @row = CouchTap::Builders::Table.new @handler, :items
-      @row.execute
+      @executor.row { @row.execute(@executor) }
       data = @database[:items].first
       assert_equal data[:price], 1.2
     end
@@ -199,7 +222,7 @@ module Builders
       doc = {'type' => 'Item', 'price' => '1.2', '_id' => '1234'}
       @handler.document = doc
       @row = CouchTap::Builders::Table.new @handler, :items
-      @row.execute
+      @executor.row { @row.execute(@executor) }
       data = @database[:items].first
       assert_equal data[:price], 1.2
     end
@@ -213,7 +236,7 @@ module Builders
           "Name from block"
         end
       end
-      @row.execute
+      @executor.row { @row.execute(@executor) }
 
       data = @database[:items].first
       assert_equal data[:name], "Name from block"
@@ -225,7 +248,7 @@ module Builders
       @row = CouchTap::Builders::Table.new @handler, :items do
         column :name
       end
-      @row.execute
+      @executor.row { @row.execute(@executor) }
 
       data = @database[:items].first
       assert_equal data[:name], doc['name']
@@ -234,9 +257,8 @@ module Builders
 
     protected
 
-    def create_database
-      database = Sequel.sqlite
-      database.create_table :items do
+    def initialize_database(connection)
+      connection.create_table :items do
         String :item_id
         String :name
         Integer :count
@@ -244,7 +266,7 @@ module Builders
         Time :created_at
         index :item_id, :unique => true
       end
-      database
+      connection
     end
 
     def create_many_to_many_items
