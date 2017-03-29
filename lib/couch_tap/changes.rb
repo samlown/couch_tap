@@ -100,7 +100,7 @@ module CouchTap
     def process_row(row)
       # Sometimes CouchDB will send an update to keep the connection alive
       if id  = row['id']
-        logger.info "Processing Document with id #{id}"
+        logger.debug "Processing Document with id #{id} in #{source.name}"
         # Wrap the whole request in a transaction
         @query_executor.row row['seq'] do
           if row['deleted']
