@@ -37,6 +37,21 @@ class QueryExecutorTest < Test::Unit::TestCase
     assert_equal 2, executor.database[:items].count
   end
 
+  def test_insert_fails_rollsback_the_transaction
+    executor = CouchTap::QueryExecutor.new 'items', db: 'sqlite:/', batch_size: 2
+    initialize_database executor.database
+
+    assert_raises Sequel::UniqueConstraintViolation do
+      executor.row 1 do
+        executor.insert(:items, false, 123, item_id: 123, name: 'dummy')
+        executor.insert(:items, false, 123, item_id: 123, name: 'dummy')
+      end
+    end
+
+    assert_equal 0, executor.database[:items].count
+    assert_equal 0, executor.database[:couch_sequence].where(name: 'items').first[:seq]
+  end
+
   def test_delete_saves_the_data_if_not_full
     executor = CouchTap::QueryExecutor.new 'items', db: 'sqlite:/', batch_size: 10
     initialize_database executor.database
@@ -67,6 +82,21 @@ class QueryExecutorTest < Test::Unit::TestCase
     end
 
     assert_equal 0, executor.database[:items].count
+  end
+
+  def test_delete_fails_rollsback_the_transaction
+    executor = CouchTap::QueryExecutor.new 'items', db: 'sqlite:/', batch_size: 2
+    initialize_database executor.database
+
+    assert_raises Sequel::DatabaseError do
+      executor.row 1 do
+        executor.delete(:items, true, item_id: 123)
+        executor.delete(:cow, true, cow_id: 234)
+      end
+    end
+
+    assert_equal 0, executor.database[:items].count
+    assert_equal 0, executor.database[:couch_sequence].where(name: 'items').first[:seq]
   end
 
   def test_create_and_delete_in_same_row

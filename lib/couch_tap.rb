@@ -42,7 +42,7 @@ module CouchTap
 
   def prepare_logger
     log = Logger.new(STDOUT)
-    log.level = Logger::INFO
+    log.level = ENV.fetch('log_level', Logger::INFO).to_i
     log
   end
 
