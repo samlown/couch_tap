@@ -15,4 +15,4 @@ def reset_test_db!
   TEST_DB.recreate!
 end
 
-ENV['log_level'] = Logger::DEBUG.to_s
+ENV['LOG_LEVEL'] ||= 'debug'

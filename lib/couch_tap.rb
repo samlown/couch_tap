@@ -17,9 +17,11 @@ require 'couch_tap/builders/table'
 require 'couch_tap/destroyers/collection'
 require 'couch_tap/destroyers/table'
 require 'couch_tap/query_executor'
+require 'couch_tap/logging'
 
 module CouchTap
   extend self
+  extend Logging
 
   def changes(database, &block)
     (@changes ||= []) << Changes.new(database, &block)
@@ -34,17 +36,5 @@ module CouchTap
     end
     threads.each {|thr| thr.join}
   end
-
-  # Provide some way to handle messages
-  def logger
-    @logger ||= prepare_logger
-  end
-
-  def prepare_logger
-    log = Logger.new(STDOUT)
-    log.level = ENV.fetch('log_level', Logger::INFO).to_i
-    log
-  end
-
 end
 
