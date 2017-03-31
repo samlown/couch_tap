@@ -18,6 +18,7 @@ require 'couch_tap/destroyers/collection'
 require 'couch_tap/destroyers/table'
 require 'couch_tap/query_executor'
 require 'couch_tap/logging'
+require 'couch_tap/timer'
 
 module CouchTap
   extend self
