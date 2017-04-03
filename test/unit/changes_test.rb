@@ -7,6 +7,7 @@ class ChangesTest < Test::Unit::TestCase
     reset_test_db!
     build_sample_config
     @executor = @changes.instance_variable_get(:@query_executor)
+    @queue = @changes.instance_variable_get(:@operations_queue)
   end
 
   def test_basic_init
@@ -31,8 +32,8 @@ class ChangesTest < Test::Unit::TestCase
     row = {'seq' => 1, 'id' => '1234', 'doc' => doc}
 
     handler = @changes.handlers.first
-    handler.expects(:delete).with(doc, @executor)
-    handler.expects(:insert).with(doc, @executor)
+    handler.expects(:delete).with(doc, @queue)
+    handler.expects(:insert).with(doc, @queue)
 
     @changes.send(:process_row, row)
 
@@ -61,7 +62,7 @@ class ChangesTest < Test::Unit::TestCase
     row = {'seq' => 9, 'id' => '1234', 'deleted' => true}
 
     @changes.handlers.each do |handler|
-      handler.expects(:delete).with({'_id' => row['id']}, @executor)
+      handler.expects(:delete).with({'_id' => row['id']}, @queue)
     end
 
     @changes.send(:process_row, row)

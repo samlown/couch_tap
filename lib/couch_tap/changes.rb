@@ -30,7 +30,8 @@ module CouchTap
     # or returns a previous definition.
     def database(opts = nil)
       if opts
-        @query_executor = QueryExecutor.new(source.name, opts)
+        @operations_queue = OperationsQueue.new
+        @query_executor = QueryExecutor.new(source.name, @operations_queue, opts)
       end
       @query_executor.database
     end
@@ -105,13 +106,13 @@ module CouchTap
         @query_executor.row row['seq'] do
           if row['deleted']
             # Delete all the entries
-            handlers.each{ |handler| handler.delete({ '_id' => id }, @query_executor) }
+            handlers.each{ |handler| handler.delete({ '_id' => id }, @operations_queue) }
           else
             doc = row['doc']
             find_document_handlers(doc).each do |handler|
               # Delete all previous entries of doc, then re-create
-              handler.delete(doc, @query_executor)
-              handler.insert(doc, @query_executor)
+              handler.delete(doc, @operations_queue)
+              handler.insert(doc, @operations_queue)
             end
           end
         end # transaction

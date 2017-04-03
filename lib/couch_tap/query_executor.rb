@@ -6,7 +6,7 @@ module CouchTap
 
     attr_reader :database, :seq
 
-    def initialize(name, data)
+    def initialize(name, queue, data)
       logger.debug "Connecting to db at #{data.fetch :db}"
       @database = Sequel.connect(data.fetch(:db))
       @database.loggers << logger
@@ -15,40 +15,28 @@ module CouchTap
       @batch_size = data.fetch(:batch_size, 1)
       logger.debug "Batch size set to #{@batch_size}"
 
-      @buffer = QueryBuffer.new
-      @ready_to_run = false
-      @processing_row = false
       @schemas = {}
       @name = name
+
+      @queue = queue
 
       @seq = find_or_create_sequence_number(name)
       logger.info "QueryExecutor successfully initialised with sequence: #{@seq}"
     end
 
-    def insert(operation)
-      raise "Cannot insert outside a row" unless @processing_row
-      size = @buffer.insert(operation) 
-      trigger_batch(size)
-    end
-
-    def delete(operation)
-      raise "Cannot delete outside a row" unless @processing_row
-      size = @buffer.delete(operation)
-      trigger_batch(size)
-    end
-
     def row(seq, &block)
+      # @queue.add_operation Operations::StartTransactionOperation.new
       @seq = seq
       logger.debug "Processing document with sequence: #{@seq}"
-      @processing_row = true
       yield
-      @processing_row = false
-      if @ready_to_run
+      # @queue.add_operation Operations::EndTransactionOperation.new(seq)
+      if @queue.length >= @batch_size
         logger.debug "Starting batch!"
         batch_summary = {}
+        buffer = transfer_queue_to_buffer
         total_timing = measure do
           @database.transaction do
-            @buffer.each do |entity|
+            buffer.each do |entity|
               logger.debug "Processing queries for #{entity.name}"
               batch_summary[entity.name] ||= []
               if entity.any_delete?
@@ -77,14 +65,26 @@ module CouchTap
 
         logger.info "Batch applied at #{@name} in #{total_timing} ms. Sequence: #{seq}"
         logger.info "Summary: #{batch_summary}"
-
-        logger.debug "Clearing buffer..."
-        @buffer.clear
-        @ready_to_run = false
       end
     end
 
     private
+
+    def transfer_queue_to_buffer
+      buffer = QueryBuffer.new
+      @queue.length.times do 
+        item = @queue.pop
+        case item
+        when Operations::InsertOperation
+          buffer.insert(item)
+        when Operations::DeleteOperation
+          buffer.delete(item)
+        else
+          raise
+        end
+      end
+      return buffer
+    end
 
     def measure(&block)
       t0 = Time.now

@@ -21,6 +21,7 @@ require 'couch_tap/logging'
 require 'couch_tap/timer'
 require 'couch_tap/operations/insert_operation'
 require 'couch_tap/operations/delete_operation'
+require 'couch_tap/operations_queue'
 
 module CouchTap
   extend self
