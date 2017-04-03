@@ -8,7 +8,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     initialize_database executor.database
 
     executor.row 1 do
-      executor.insert(item(true, 123))
+      executor.insert(item_to_insert(true, 123))
     end
 
     assert_equal 0, executor.database[:items].count
@@ -19,7 +19,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     initialize_database executor.database
 
     assert_raises RuntimeError do
-      executor.insert(item(true, 123))
+      executor.insert(item_to_insert(true, 123))
     end
 
     assert_equal 0, executor.database[:items].count
@@ -30,8 +30,8 @@ class QueryExecutorTest < Test::Unit::TestCase
     initialize_database executor.database
 
     executor.row 1 do
-      executor.insert(item(true, 123))
-      executor.insert(item(true, 987))
+      executor.insert(item_to_insert(true, 123))
+      executor.insert(item_to_insert(true, 987))
     end
 
     assert_equal 2, executor.database[:items].count
@@ -43,8 +43,8 @@ class QueryExecutorTest < Test::Unit::TestCase
 
     assert_raises Sequel::UniqueConstraintViolation do
       executor.row 1 do
-        executor.insert(item(false, 123))
-        executor.insert(item(false, 123))
+        executor.insert(item_to_insert(false, 123))
+        executor.insert(item_to_insert(false, 123))
       end
     end
 
@@ -62,7 +62,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     assert_equal 1, executor.database[:items].count
 
     executor.row 1 do
-      executor.delete(:items, true, item_id: id)
+      executor.delete(item_to_delete(id))
     end
 
     assert_equal 1, executor.database[:items].count
@@ -78,7 +78,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     assert_equal 1, executor.database[:items].count
 
     executor.row 1 do
-      executor.delete(:items, true, item_id: id)
+      executor.delete(item_to_delete(id))
     end
 
     assert_equal 0, executor.database[:items].count
@@ -95,8 +95,8 @@ class QueryExecutorTest < Test::Unit::TestCase
 
     assert_raises Sequel::DatabaseError do
       executor.row 1 do
-        executor.delete(:items, true, item_id: 123)
-        executor.delete(:cow, true, cow_id: 234)
+        executor.delete(item_to_delete(123))
+        executor.delete(CouchTap::Operations::DeleteOperation.new(:cow, true, :cow_id, 234))
       end
     end
 
@@ -109,8 +109,8 @@ class QueryExecutorTest < Test::Unit::TestCase
     initialize_database executor.database
 
     executor.row 1 do
-      executor.insert(item(true, 123))
-      executor.delete(:items, true, item_id: 123)
+      executor.insert(item_to_insert(true, 123))
+      executor.delete(item_to_delete(123))
     end
 
     assert_equal 0, executor.database[:items].where(item_id: 123).count
@@ -121,10 +121,10 @@ class QueryExecutorTest < Test::Unit::TestCase
     initialize_database executor.database
 
     executor.row 1 do
-      executor.insert(item(true, 123))
-      executor.insert(item(true, 234))
-      executor.insert(item(true, 345))
-      executor.insert(item(true, 456))
+      executor.insert(item_to_insert(true, 123))
+      executor.insert(item_to_insert(true, 234))
+      executor.insert(item_to_insert(true, 345))
+      executor.insert(item_to_insert(true, 456))
     end
 
     assert_equal 4, executor.database[:items].count
@@ -136,22 +136,22 @@ class QueryExecutorTest < Test::Unit::TestCase
 
     executor.row 1 do
       # Create and destroy item 123
-      executor.insert(item(true, 123))
-      executor.delete(:items, true, item_id: 123)
+      executor.insert(item_to_insert(true, 123))
+      executor.delete(item_to_delete(123))
 
-      # Insert items 234, 345 and 456
-      executor.insert(item(true, 234))
-      executor.insert(item(true, 345))
-      executor.insert(item(true, 456))
+      # Insert item_to_inserts 234, 345 and 456
+      executor.insert(item_to_insert(true, 234))
+      executor.insert(item_to_insert(true, 345))
+      executor.insert(item_to_insert(true, 456))
     end
 
     executor.row 2 do
       # Update item 234
-      executor.delete(:items, true, item_id: 234)
-      executor.insert(item(true, 234))
+      executor.delete(item_to_delete(234))
+      executor.insert(item_to_insert(true, 234))
 
       # Delete item 345
-      executor.delete(:items, true, item_id: 345)
+      executor.delete(item_to_delete(345))
     end
 
     assert_equal %w(234 456), executor.database[:items].select(:item_id).to_a.map { |i| i[:item_id] }
@@ -191,7 +191,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     assert_equal 1, executor.database[:items].count
 
     assert_raises RuntimeError do
-      executor.delete(:items, true, item_id: 123)
+      executor.delete(item_to_delete(123))
     end
 
     assert_equal 1, executor.database[:items].count
@@ -219,7 +219,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     initialize_database executor.database
 
     executor.row 500 do
-      executor.insert(item(true, 123))
+      executor.insert(item_to_insert(true, 123))
     end
 
     assert_equal 500, executor.seq
@@ -231,7 +231,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     initialize_database executor.database
 
     executor.row 500 do
-      executor.insert(item(true, 123))
+      executor.insert(item_to_insert(true, 123))
     end
 
     assert_equal 500, executor.seq
@@ -252,7 +252,11 @@ class QueryExecutorTest < Test::Unit::TestCase
     connection
   end
 
-  def item(top_level, id)
+  def item_to_insert(top_level, id)
     CouchTap::Operations::InsertOperation.new(:items, top_level, id, item_id: id, name: 'dummy', count: rand())
+  end
+
+  def item_to_delete(id)
+    CouchTap::Operations::DeleteOperation.new(:items, true, :item_id, id)
   end
 end

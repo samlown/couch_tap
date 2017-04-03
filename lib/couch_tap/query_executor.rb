@@ -31,10 +31,9 @@ module CouchTap
       trigger_batch(size)
     end
 
-    def delete(db, top_level, filter)
+    def delete(operation)
       raise "Cannot delete outside a row" unless @processing_row
-      logger.debug "Deleting a #{top_level ? 'top_level' : 'child' } record with filter #{filter} from #{db}"
-      size =  @buffer.delete(db, top_level, filter.keys.first, filter.values.first)
+      size = @buffer.delete(operation)
       trigger_batch(size)
     end
 

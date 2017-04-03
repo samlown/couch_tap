@@ -13,8 +13,8 @@ module CouchTap
       @size += 1
     end
 
-    def delete(entity, top_level, key, id)
-      get_or_create(entity, top_level).delete(key, id)
+    def delete(operation)
+      get_or_create(operation.table, operation.top_level).delete(operation.primary_key, operation.id)
       @size += 1
     end
 

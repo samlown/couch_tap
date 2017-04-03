@@ -31,7 +31,7 @@ module CouchTap
       end
 
       def execute(query_executor)
-        query_executor.delete(name, parent.is_a?(DocumentHandler), key_filter)
+        query_executor.delete(CouchTap::Operations::DeleteOperation.new(name, parent.is_a?(DocumentHandler), @primary_keys.first, handler.id))
 
         @_collections.each do |collection|
           collection.execute(query_executor)

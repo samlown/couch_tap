@@ -20,6 +20,7 @@ require 'couch_tap/query_executor'
 require 'couch_tap/logging'
 require 'couch_tap/timer'
 require 'couch_tap/operations/insert_operation'
+require 'couch_tap/operations/delete_operation'
 
 module CouchTap
   extend self
