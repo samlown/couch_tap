@@ -25,10 +25,9 @@ module CouchTap
       logger.info "QueryExecutor successfully initialised with sequence: #{@seq}"
     end
 
-    def insert(db, top_level, id, attributes)
+    def insert(operation)
       raise "Cannot insert outside a row" unless @processing_row
-      logger.debug "Inserting a #{top_level ? 'top_level' : 'child' } record with id #{id} into #{db}"
-      size = @buffer.insert(db, top_level, id, attributes) 
+      size = @buffer.insert(operation) 
       trigger_batch(size)
     end
 

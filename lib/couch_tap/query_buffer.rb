@@ -8,8 +8,8 @@ module CouchTap
       @size = 0
     end
 
-    def insert(entity, top_level, id, attributes)
-      get_or_create(entity, top_level).insert(id, attributes)
+    def insert(operation)
+      get_or_create(operation.table, operation.top_level).insert(operation.id, operation.attributes)
       @size += 1
     end
 

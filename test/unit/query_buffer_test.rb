@@ -14,7 +14,7 @@ class QueryBufferTest < Test::Unit::TestCase
 
     CouchTap::Entity.expects(:new).with('dummy', true).returns(entity)
 
-    buffer.insert('dummy', true, id, data)
+    buffer.insert(CouchTap::Operations::InsertOperation.new('dummy', true, id, data))
   end
 
   def test_insert_reuses_entities_with_same_name
@@ -33,24 +33,24 @@ class QueryBufferTest < Test::Unit::TestCase
 
     CouchTap::Entity.expects(:new).with('dummy', true).returns(entity)
 
-    buffer.insert('dummy', true, id, data)
-    buffer.insert('dummy', true, id2, data2)
+    buffer.insert(CouchTap::Operations::InsertOperation.new('dummy', true, id, data))
+    buffer.insert(CouchTap::Operations::InsertOperation.new('dummy', true, id2, data2))
   end
 
   def test_insert_cannot_have_same_entity_as_both_top_level_and_dependent
     buffer = CouchTap::QueryBuffer.new
 
-    buffer.insert('dummy', true, 123, a: 1, b: 'b')
+    buffer.insert(CouchTap::Operations::InsertOperation.new('dummy', true, 123, a: 1, b: 'b'))
     assert_raises ArgumentError do
-      buffer.insert('dummy', false, 123, a: 1, b: 'b')
+      buffer.insert(CouchTap::Operations::InsertOperation.new('dummy', false, 123, a: 1, b: 'b'))
     end
   end
 
   def test_insert_increases_size
     buffer = CouchTap::QueryBuffer.new
 
-    assert_equal 1, buffer.insert('dummy', true, 123, a: 1, b: 'b')
-    assert_equal 2, buffer.insert('dummy', true, 123, a: 1, b: 'b')
+    assert_equal 1, buffer.insert(CouchTap::Operations::InsertOperation.new('dummy', true, 123, a: 1, b: 'b'))
+    assert_equal 2, buffer.insert(CouchTap::Operations::InsertOperation.new('dummy', true, 123, a: 1, b: 'b'))
   end
 
   def test_delete_adds_data_to_be_deleted
@@ -104,16 +104,16 @@ class QueryBufferTest < Test::Unit::TestCase
   def test_clear_resets_the_size
     buffer = CouchTap::QueryBuffer.new
 
-    assert_equal 1, buffer.insert('dummy', true, 123, a: 1, b: 'c')
+    assert_equal 1, buffer.insert(CouchTap::Operations::InsertOperation.new('dummy', true, 123, a: 1, b: 'c'))
     assert_equal 2, buffer.delete('dummy', true, 'dummy_id', 987)
     buffer.clear
-    assert_equal 1, buffer.insert('dummy', true, 123, a: 1, b: 'c')
+    assert_equal 1, buffer.insert(CouchTap::Operations::InsertOperation.new('dummy', true, 123, a: 1, b: 'c'))
   end
 
   def test_clear_clears_the_buffer
     buffer = CouchTap::QueryBuffer.new
 
-    assert_equal 1, buffer.insert('dummy', true, 123, a: 1, b: 'c')
+    assert_equal 1, buffer.insert(CouchTap::Operations::InsertOperation.new('dummy', true, 123, a: 1, b: 'c'))
     assert_equal 2, buffer.delete('another', true, 'another_id', 987)
 
     items = 0
@@ -130,7 +130,7 @@ class QueryBufferTest < Test::Unit::TestCase
   def test_can_iterate_over_entities
     buffer = CouchTap::QueryBuffer.new
 
-    assert_equal 1, buffer.insert('dummy', true, 123, a: 1, b: 'c')
+    assert_equal 1, buffer.insert(CouchTap::Operations::InsertOperation.new('dummy', true, 123, a: 1, b: 'c'))
     assert_equal 2, buffer.delete('another', true, 'another_id', 987)
 
     entity_names = []

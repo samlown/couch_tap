@@ -8,7 +8,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     initialize_database executor.database
 
     executor.row 1 do
-      executor.insert(:items, true, 123, item_id: 123, name: 'dummy')
+      executor.insert(item(true, 123))
     end
 
     assert_equal 0, executor.database[:items].count
@@ -19,7 +19,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     initialize_database executor.database
 
     assert_raises RuntimeError do
-      executor.insert(:items, true, 123, item_id: 123, name: 'dummy')
+      executor.insert(item(true, 123))
     end
 
     assert_equal 0, executor.database[:items].count
@@ -30,8 +30,8 @@ class QueryExecutorTest < Test::Unit::TestCase
     initialize_database executor.database
 
     executor.row 1 do
-      executor.insert(:items, true, 123, item_id: 123, name: 'dummy')
-      executor.insert(:items, true, 987, item_id: 987, name: 'dummy')
+      executor.insert(item(true, 123))
+      executor.insert(item(true, 987))
     end
 
     assert_equal 2, executor.database[:items].count
@@ -43,8 +43,8 @@ class QueryExecutorTest < Test::Unit::TestCase
 
     assert_raises Sequel::UniqueConstraintViolation do
       executor.row 1 do
-        executor.insert(:items, false, 123, item_id: 123, name: 'dummy')
-        executor.insert(:items, false, 123, item_id: 123, name: 'dummy')
+        executor.insert(item(false, 123))
+        executor.insert(item(false, 123))
       end
     end
 
@@ -109,7 +109,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     initialize_database executor.database
 
     executor.row 1 do
-      executor.insert(:items, true, 123, item_id: 123, a: 1, b: 'b')
+      executor.insert(item(true, 123))
       executor.delete(:items, true, item_id: 123)
     end
 
@@ -121,10 +121,10 @@ class QueryExecutorTest < Test::Unit::TestCase
     initialize_database executor.database
 
     executor.row 1 do
-      executor.insert(:items, true, 123, item_id: 123, count: 1, name: 'b')
-      executor.insert(:items, true, 234, item_id: 234, count: 2, name: 'c')
-      executor.insert(:items, true, 345, item_id: 345, count: 3, name: 'd')
-      executor.insert(:items, true, 456, item_id: 456, count: 4, name: 'e')
+      executor.insert(item(true, 123))
+      executor.insert(item(true, 234))
+      executor.insert(item(true, 345))
+      executor.insert(item(true, 456))
     end
 
     assert_equal 4, executor.database[:items].count
@@ -136,30 +136,25 @@ class QueryExecutorTest < Test::Unit::TestCase
 
     executor.row 1 do
       # Create and destroy item 123
-      executor.insert(:items, true, 123, item_id: 123, count: 1, name: 'b')
+      executor.insert(item(true, 123))
       executor.delete(:items, true, item_id: 123)
 
       # Insert items 234, 345 and 456
-      executor.insert(:items, true, 234, item_id: 234, count: 2, name: 'c')
-      executor.insert(:items, true, 345, item_id: 345, count: 3, name: 'd')
-      executor.insert(:items, true, 456, item_id: 456, count: 4, name: 'e')
+      executor.insert(item(true, 234))
+      executor.insert(item(true, 345))
+      executor.insert(item(true, 456))
     end
 
     executor.row 2 do
       # Update item 234
       executor.delete(:items, true, item_id: 234)
-      executor.insert(:items, true, 234, item_id: 234, count: 4, name: 'new')
+      executor.insert(item(true, 234))
 
       # Delete item 345
       executor.delete(:items, true, item_id: 345)
     end
 
-    expected = [
-      { item_id: "456", name: "e", count: 4, price: nil, created_at: nil }, 
-      { item_id: "234", name: "new", count: 4, price: nil, created_at: nil }
-    ]
-
-    assert_equal expected, executor.database[:items].to_a
+    assert_equal %w(234 456), executor.database[:items].select(:item_id).to_a.map { |i| i[:item_id] }
   end
 
   def test_delete_nested_items
@@ -224,7 +219,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     initialize_database executor.database
 
     executor.row 500 do
-      executor.insert(:items, true, 123, item_id: 123, name: 'n')
+      executor.insert(item(true, 123))
     end
 
     assert_equal 500, executor.seq
@@ -236,7 +231,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     initialize_database executor.database
 
     executor.row 500 do
-      executor.insert(:items, true, 123, item_id: 123, name: 'n')
+      executor.insert(item(true, 123))
     end
 
     assert_equal 500, executor.seq
@@ -255,5 +250,9 @@ class QueryExecutorTest < Test::Unit::TestCase
       index :item_id, :unique => true
     end
     connection
+  end
+
+  def item(top_level, id)
+    CouchTap::Operations::InsertOperation.new(:items, top_level, id, item_id: id, name: 'dummy', count: rand())
   end
 end
