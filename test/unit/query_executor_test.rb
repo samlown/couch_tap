@@ -129,13 +129,25 @@ class QueryExecutorTest < Test::Unit::TestCase
 
   def test_prepends_a_begin_transaction_operation
     queue = CouchTap::OperationsQueue.new
-    executor = CouchTap::QueryExecutor.new 'items', queue, db: 'sqlite:/', batch_size: 2
+    executor = CouchTap::QueryExecutor.new 'items', queue, db: 'sqlite:/', batch_size: 10
     initialize_database executor.database
 
     executor.row 1 do
     end
 
     assert_true queue.pop.is_a? CouchTap::Operations::BeginTransactionOperation
+  end
+
+  def test_appends_an_end_transaction_operation
+    queue = CouchTap::OperationsQueue.new
+    executor = CouchTap::QueryExecutor.new 'items', queue, db: 'sqlite:/', batch_size: 10
+    initialize_database executor.database
+
+    executor.row 1 do
+    end
+
+    queue.pop
+    assert_true queue.pop.is_a? CouchTap::Operations::EndTransactionOperation
   end
 
   def test_combined_workload

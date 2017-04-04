@@ -25,11 +25,13 @@ module CouchTap
     end
 
     def row(seq, &block)
-      @queue.add_operation Operations::BeginTransactionOperation.new
       @seq = seq
+
+      @queue.add_operation Operations::BeginTransactionOperation.new
       logger.debug "Processing document with sequence: #{@seq}"
       yield
-      # @queue.add_operation Operations::EndTransactionOperation.new(seq)
+      @queue.add_operation Operations::EndTransactionOperation.new
+
       if @queue.length >= @batch_size
         logger.debug "Starting batch!"
         batch_summary = {}
@@ -79,7 +81,7 @@ module CouchTap
           buffer.insert(item)
         when Operations::DeleteOperation
           buffer.delete(item)
-        when Operations::BeginTransactionOperation
+        when Operations::BeginTransactionOperation, Operations::EndTransactionOperation
           # Nothing
         else
           raise "Unknown operation #{item}"
