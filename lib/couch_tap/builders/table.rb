@@ -45,10 +45,6 @@ module CouchTap
       end
       alias doc document
 
-      def database
-        @database ||= handler.database
-      end
-
       # Grab the latest set of values to filter with.
       # This is only relevant in sub-tables.
       def key_filter

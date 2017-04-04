@@ -26,14 +26,8 @@ module CouchTap
 
     #### DSL
 
-    # Dual-purpose method, accepts configuration of database
-    # or returns a previous definition.
-    def database(opts = nil)
-      if opts
-        @operations_queue = OperationsQueue.new
-        @query_executor = QueryExecutor.new(source.name, @operations_queue, opts)
-      end
-      @query_executor.database
+    def database(cfg)
+      @database_config = cfg
     end
 
     def document(filter = {}, &block)
@@ -43,7 +37,7 @@ module CouchTap
     #### END DSL
 
     def schema(name)
-      @schemas[name.to_sym] ||= Schema.new(database, name)
+      @schemas[name.to_sym] ||= Schema.new(@query_executor.database, name)
     end
 
     # Start listening to the CouchDB changes feed. Must be called from
@@ -51,7 +45,8 @@ module CouchTap
     # By this stage we should have a sequence id so we know where to start from
     # and all the filters should have been prepared.
     def start
-      raise "Cannot work without a DB destination!!" unless @query_executor
+      raise "Cannot work without a DB destination!!" unless @database_config
+      prepare_consumer
       prepare_parser
       perform_request
     end
@@ -119,6 +114,11 @@ module CouchTap
       elsif row['last_seq']
         logger.info "#{source.name}: received last seq: #{row['last_seq']}"
       end
+    end
+
+    def prepare_consumer
+      @operations_queue = CouchTap::OperationsQueue.new
+      @query_executor = CouchTap::QueryExecutor.new(source.name, @operations_queue, @database_config)
     end
 
     def find_document_handlers(document)

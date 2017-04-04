@@ -10,16 +10,6 @@ class ChangesTest < Test::Unit::TestCase
     @queue = @changes.instance_variable_get(:@operations_queue)
   end
 
-  def test_basic_init
-    @database = @changes.database
-    assert @changes.database, "Did not assign a database"
-    assert @changes.database.is_a?(Sequel::Database)
-    row = @database[:couch_sequence].first
-    assert row, "Did not create a couch_sequence table"
-    assert_equal row[:seq], 0, "Did not set a default sequence number"
-    assert_equal row[:name], TEST_DB_NAME, "Sequence name does not match"
-  end
-
   def test_defining_document_handler
     assert_equal @changes.handlers.length, 3
     handler = @changes.handlers.first
@@ -72,7 +62,7 @@ class ChangesTest < Test::Unit::TestCase
 
   def test_returning_schema
     schema = mock()
-    CouchTap::Schema.expects(:new).once.with(@changes.database, :items).returns(schema)
+    CouchTap::Schema.expects(:new).once.with(@executor.database, :items).returns(schema)
     # Run twice to ensure cached
     assert_equal @changes.schema(:items), schema
     assert_equal @changes.schema(:items), schema
@@ -90,6 +80,7 @@ class ChangesTest < Test::Unit::TestCase
       document :type => 'Bar', :special => true do
       end
     end
+    @changes.send(:prepare_consumer)
   end
 
 end
