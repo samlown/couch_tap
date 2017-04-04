@@ -137,4 +137,30 @@ class QueryBufferTest < Test::Unit::TestCase
     buffer.each { |e| entity_names << e.name }
     assert_equal %w(dummy another), entity_names
   end
+
+  def test_top_level_items_are_overwritten
+    buffer = CouchTap::QueryBuffer.new
+
+    buffer.insert('dummy', true, 123, a: 1, b: 'c')
+    buffer.insert('dummy', true, 123, a: 2, b: 'd')
+
+    entities = []
+    buffer.each { |e| entities << e }
+
+    assert_equal 1, entities.count
+    assert_equal [[2, 'd']], entities.first.insert_values(%i(a b))
+  end
+
+  def test_child_elements_are_deleted
+    buffer = CouchTap::QueryBuffer.new
+
+    buffer.insert('dummy', false, 123, a: 1, b: 'c')
+    buffer.delete('dummy', false, 'dummy_id', 123)
+
+    entities = []
+    buffer.each { |e| entities << e }
+
+    assert_equal 1, entities.count
+    refute entities.first.any_insert?
+  end
 end

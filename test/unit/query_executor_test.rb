@@ -157,6 +157,31 @@ class QueryExecutorTest < Test::Unit::TestCase
     assert_equal expected, executor.database[:items].to_a
   end
 
+  def test_delete_nested_items
+    executor = CouchTap::QueryExecutor.new 'items', db: 'sqlite:/', batch_size: 2
+    initialize_database executor.database
+
+    executor.database.create_table :groups do
+      String :item_id
+      String :group_name
+    end
+
+    executor.row 1 do
+      executor.insert(:items, true, 123, item_id: 123, count: 1, name: 'name')
+      executor.insert(:groups, false, 123, item_id: 123, group_name: 'group_name')
+    end
+
+    executor.row 2 do
+      executor.delete(:items, true, item_id: 123)
+      executor.insert(:items, true, 123, item_id: 123, count: 2, name: 'another name')
+      executor.delete(:groups, false, item_id: 123)
+      executor.insert(:groups, false, 123, item_id: 123, group_name: 'another group name')
+    end
+
+    assert_equal [2], executor.database[:items].select(:count).to_a.map{ |i| i[:count] }
+    assert_equal ['another group name'], executor.database[:groups].select(:group_name).to_a.map{ |g| g[:group_name] }
+  end
+
   def test_cannot_delete_outside_a_row_document
     executor = CouchTap::QueryExecutor.new 'items', db: 'sqlite:/', batch_size: 10
     initialize_database executor.database

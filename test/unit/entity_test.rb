@@ -100,5 +100,13 @@ class EntityTest < Test::Unit::TestCase
 
     refute entity.any_insert?
   end
+
+  def test_delete_removes_from_insertions_list_if_child
+    entity = CouchTap::Entity.new('dummy', false)
+    entity.insert(123, a: 1, b: 'c')
+    entity.delete('dummy_id', 123)
+
+    refute entity.any_insert?
+  end
 end
 

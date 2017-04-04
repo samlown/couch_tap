@@ -45,15 +45,15 @@ module CouchTap
       @deletes = Set.new
       @primary_key = nil
       @top_level = top_level
-      @inserts = top_level ? {} : []
+      @inserts = {}
       @name = name
     end
 
     def insert(id, data)
       if @top_level
-        @inserts[id] = data
+        @inserts[id] = [data]
       else
-        @inserts << data
+        (@inserts[id] ||= []) << data
       end
     end
 
@@ -63,9 +63,7 @@ module CouchTap
       end
       @primary_key = key
       @deletes << id
-      if top_level
-        @inserts.delete id
-      end
+      @inserts.delete(id)
     end
 
     def deletes
@@ -73,7 +71,7 @@ module CouchTap
     end
 
     def insert_values(keys)
-      (@top_level ? @inserts.values : @inserts).map do |data|
+      @inserts.values.flatten.map do |data|
         keys.map { |k| data[k] }
       end
     end
