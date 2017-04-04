@@ -25,7 +25,7 @@ module CouchTap
     end
 
     def row(seq, &block)
-      # @queue.add_operation Operations::StartTransactionOperation.new
+      @queue.add_operation Operations::BeginTransactionOperation.new
       @seq = seq
       logger.debug "Processing document with sequence: #{@seq}"
       yield
@@ -79,8 +79,10 @@ module CouchTap
           buffer.insert(item)
         when Operations::DeleteOperation
           buffer.delete(item)
+        when Operations::BeginTransactionOperation
+          # Nothing
         else
-          raise
+          raise "Unknown operation #{item}"
         end
       end
       return buffer
