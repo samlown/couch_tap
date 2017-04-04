@@ -68,6 +68,22 @@ class ChangesTest < Test::Unit::TestCase
     assert_equal @changes.schema(:items), schema
   end
 
+  def test_prepends_a_begin_transaction_operation
+    @executor.expects(:row).with(3)
+    @changes.send(:process_row, 'id' => '1234', 'seq' => 3, 'doc' => {})
+
+    assert_true @queue.pop.is_a? CouchTap::Operations::BeginTransactionOperation
+  end
+
+  def test_appends_an_end_transaction_operation
+    @executor.expects(:row).with(3)
+    @changes.send(:process_row, 'id' => '1234', 'seq' => 3, 'doc' => {})
+
+    @queue.pop
+    assert_true @queue.pop.is_a? CouchTap::Operations::EndTransactionOperation
+  end
+
+
   protected
 
   def build_sample_config

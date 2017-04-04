@@ -98,19 +98,20 @@ module CouchTap
       if id  = row['id']
         logger.debug "Processing Document with id #{id} in #{source.name}"
         # Wrap the whole request in a transaction
-        @query_executor.row row['seq'] do
-          if row['deleted']
-            # Delete all the entries
-            handlers.each{ |handler| handler.delete({ '_id' => id }, @operations_queue) }
-          else
-            doc = row['doc']
-            find_document_handlers(doc).each do |handler|
-              # Delete all previous entries of doc, then re-create
-              handler.delete(doc, @operations_queue)
-              handler.insert(doc, @operations_queue)
-            end
+        @operations_queue.add_operation Operations::BeginTransactionOperation.new
+        if row['deleted']
+          # Delete all the entries
+          handlers.each{ |handler| handler.delete({ '_id' => id }, @operations_queue) }
+        else
+          doc = row['doc']
+          find_document_handlers(doc).each do |handler|
+            # Delete all previous entries of doc, then re-create
+            handler.delete(doc, @operations_queue)
+            handler.insert(doc, @operations_queue)
           end
-        end # transaction
+        end
+        @operations_queue.add_operation Operations::EndTransactionOperation.new
+        @query_executor.row row['seq']
       elsif row['last_seq']
         logger.info "#{source.name}: received last seq: #{row['last_seq']}"
       end

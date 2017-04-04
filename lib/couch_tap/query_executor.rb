@@ -24,13 +24,10 @@ module CouchTap
       logger.info "QueryExecutor successfully initialised with sequence: #{@seq}"
     end
 
-    def row(seq, &block)
+    def row(seq)
       @seq = seq
 
-      @queue.add_operation Operations::BeginTransactionOperation.new
       logger.debug "Processing document with sequence: #{@seq}"
-      yield
-      @queue.add_operation Operations::EndTransactionOperation.new
 
       if @queue.length >= @batch_size
         logger.debug "Starting batch!"
