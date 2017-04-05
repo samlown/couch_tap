@@ -23,6 +23,7 @@ require 'couch_tap/operations/insert_operation'
 require 'couch_tap/operations/delete_operation'
 require 'couch_tap/operations/begin_transaction_operation'
 require 'couch_tap/operations/end_transaction_operation'
+require 'couch_tap/operations/close_queue_operation'
 require 'couch_tap/operations_queue'
 
 module CouchTap

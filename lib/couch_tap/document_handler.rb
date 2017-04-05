@@ -55,7 +55,7 @@ module CouchTap
       instance_eval(&@_block)
     end
 
-    def delete(document, query_executor)
+    def delete(document, operations_queue)
       @mode = :delete
       self.document = document
       self.operations_queue = operations_queue 

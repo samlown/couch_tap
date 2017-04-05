@@ -27,7 +27,8 @@ module CouchTap
     #### DSL
 
     def database(cfg)
-      @database_config = cfg
+      @operations_queue = CouchTap::OperationsQueue.new
+      @query_executor = CouchTap::QueryExecutor.new(source.name, @operations_queue, cfg)
     end
 
     def document(filter = {}, &block)
@@ -45,8 +46,8 @@ module CouchTap
     # By this stage we should have a sequence id so we know where to start from
     # and all the filters should have been prepared.
     def start
-      raise "Cannot work without a DB destination!!" unless @database_config
-      prepare_consumer
+      raise "Cannot work without a DB destination!!" unless @query_executor
+      start_consumer
       prepare_parser
       perform_request
     end
@@ -110,16 +111,16 @@ module CouchTap
             handler.insert(doc, @operations_queue)
           end
         end
-        @operations_queue.add_operation Operations::EndTransactionOperation.new
-        @query_executor.row row['seq']
+        @operations_queue.add_operation Operations::EndTransactionOperation.new(row['seq'])
       elsif row['last_seq']
         logger.info "#{source.name}: received last seq: #{row['last_seq']}"
       end
     end
 
-    def prepare_consumer
-      @operations_queue = CouchTap::OperationsQueue.new
-      @query_executor = CouchTap::QueryExecutor.new(source.name, @operations_queue, @database_config)
+    def start_consumer
+      Thread.new do
+        @query_executor.start
+      end
     end
 
     def find_document_handlers(document)

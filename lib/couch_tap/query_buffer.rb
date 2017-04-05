@@ -3,6 +3,8 @@ module CouchTap
   class QueryBuffer
     include Enumerable
 
+    attr_reader :size
+
     def initialize()
       @buffer = {}
       @size = 0

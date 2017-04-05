@@ -68,8 +68,9 @@ module Builders
         column :item_id, data
       end
       @row.execute(@queue)
-      @executor.row(1)
-      assert_equal @database[:group_items].first, {:group_id => '1234', :item_id => 'i1234'}
+
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::InsertOperation.new(:group_items, false, '1234', group_id: '1234', item_id: 'i1234'), @queue.pop
     end
 
     def test_execute_with_new_row
@@ -77,12 +78,9 @@ module Builders
       @handler.document = doc
       @row = CouchTap::Builders::Table.new(@handler, :items)
       @row.execute(@queue)
-      @executor.row(1)
 
-      items = @database[:items]
-      item = items.first
-      assert_equal items.where(:item_id => '1234').count, 1
-      assert_equal item[:name], "Some Item"
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Some Item'), @queue.pop
     end
 
     def test_reuses_id
@@ -90,19 +88,12 @@ module Builders
       @handler.document = doc
       @row = CouchTap::Builders::Table.new(@handler, :items)
       @row.execute(@queue)
-      @executor.row(1)
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Some Item'), @queue.pop
 
-      items = @database[:items]
-      item = items.first
-      assert_equal items.where(:item_id => '1234').count, 1
-      assert_equal item[:name], "Some Item"
-
-      row = CouchTap::Builders::Table.new(@handler, :items)
-      assert_raises Sequel::UniqueConstraintViolation do
-        @row.execute(@queue)
-        @executor.row(1)
-      end
-      assert_equal items.where(item_id: '1234').count, 1
+      @row.execute(@queue)
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Some Item'), @queue.pop
     end
 
     def test_execute_with_new_row_with_time
@@ -111,11 +102,9 @@ module Builders
       @handler.document = doc
       @row = CouchTap::Builders::Table.new(@handler, :items)
       @row.execute(@queue)
-      @executor.row(1)
-      items = @database[:items]
-      item = items.first
-      assert item[:created_at].is_a?(Time)
-      assert_equal item[:created_at].to_s, time.to_s
+
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Some Item', created_at: time.to_s), @queue.pop
     end
 
     def test_building_collections
@@ -146,10 +135,11 @@ module Builders
         end
       end
       @row.execute(@queue)
-      @executor.row(1)
 
-      assert_equal @database[:items].where(item_id: '1234').count, 1
-      assert_equal @database[:groups].where(item_id: '1234').count, 2
+      assert_equal 3, @queue.length
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Some Group'), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:groups, false, '1234', item_id: '1234', name: 'Group 1'), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:groups, false, '1234', item_id: '1234', name: 'Group 2'), @queue.pop
     end
 
 
@@ -160,10 +150,9 @@ module Builders
         column :name, :full_name
       end
       @row.execute(@queue)
-      @executor.row(1)
 
-      data = @database[:items].first
-      assert_equal data[:name], doc['full_name']
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Some Other Item'), @queue.pop
     end
 
     def test_column_assign_with_value
@@ -173,10 +162,9 @@ module Builders
         column :name, "Force the name"
       end
       @row.execute(@queue)
-      @executor.row(1)
 
-      data = @database[:items].first
-      assert_equal data[:name], "Force the name"
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Force the name'), @queue.pop
     end
 
     def test_column_assign_with_nil
@@ -186,10 +174,9 @@ module Builders
         column :name, nil
       end
       @row.execute(@queue)
-      @executor.row(1)
 
-      data = @database[:items].first
-      assert_equal data[:name], nil
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: nil), @queue.pop
     end
 
     def test_column_assign_with_empty_for_non_string
@@ -197,9 +184,9 @@ module Builders
       @handler.document = doc
       @row = CouchTap::Builders::Table.new @handler, :items
       @row.execute(@queue)
-      @executor.row(1)
-      data = @database[:items].first
-      assert_equal data[:created_at], nil
+
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Some Item Name', created_at: nil), @queue.pop
     end
 
     def test_column_assign_with_integer
@@ -207,9 +194,9 @@ module Builders
       @handler.document = doc
       @row = CouchTap::Builders::Table.new @handler, :items
       @row.execute(@queue)
-      @executor.row(1)
-      data = @database[:items].first
-      assert_equal data[:count], 3
+
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', count: 3), @queue.pop
     end
 
     def test_column_assign_with_integer_as_string
@@ -217,9 +204,9 @@ module Builders
       @handler.document = doc
       @row = CouchTap::Builders::Table.new @handler, :items
       @row.execute(@queue)
-      @executor.row(1)
-      data = @database[:items].first
-      assert_equal data[:count], 1
+
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', count: 1), @queue.pop
     end
 
     def test_column_assign_with_float
@@ -227,9 +214,9 @@ module Builders
       @handler.document = doc
       @row = CouchTap::Builders::Table.new @handler, :items
       @row.execute(@queue)
-      @executor.row(1)
-      data = @database[:items].first
-      assert_equal data[:price], 1.2
+
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', price: 1.2), @queue.pop
     end
 
 
@@ -238,9 +225,9 @@ module Builders
       @handler.document = doc
       @row = CouchTap::Builders::Table.new @handler, :items
       @row.execute(@queue)
-      @executor.row(1)
-      data = @database[:items].first
-      assert_equal data[:price], 1.2
+
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', price: 1.2), @queue.pop
     end
 
 
@@ -253,10 +240,9 @@ module Builders
         end
       end
       @row.execute(@queue)
-      @executor.row(1)
 
-      data = @database[:items].first
-      assert_equal data[:name], "Name from block"
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Name from block'), @queue.pop
     end
 
     def test_column_assign_with_no_field
@@ -266,10 +252,9 @@ module Builders
         column :name
       end
       @row.execute(@queue)
-      @executor.row(1)
 
-      data = @database[:items].first
-      assert_equal data[:name], doc['name']
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Some Other Item'), @queue.pop
     end
 
 

@@ -7,6 +7,7 @@ class ChangesTest < Test::Unit::TestCase
     reset_test_db!
     build_sample_config
     @executor = @changes.instance_variable_get(:@query_executor)
+    initialize_database @executor.database
     @queue = @changes.instance_variable_get(:@operations_queue)
   end
 
@@ -21,43 +22,41 @@ class ChangesTest < Test::Unit::TestCase
     doc = {'_id' => '1234', 'type' => 'Foo', 'name' => 'Some Document'}
     row = {'seq' => 1, 'id' => '1234', 'doc' => doc}
 
-    handler = @changes.handlers.first
-    handler.expects(:delete).with(doc, @queue)
-    handler.expects(:insert).with(doc, @queue)
-
     @changes.send(:process_row, row)
 
-    # Should update seq
-    assert_equal @changes.seq, 1
+    assert_equal 4, @queue.length
+    assert_equal CouchTap::Operations::BeginTransactionOperation.new, @queue.pop
+    assert_equal CouchTap::Operations::DeleteOperation.new(:foo, true, :foo_id, '1234'), @queue.pop
+    assert_equal CouchTap::Operations::InsertOperation.new(:foo, true, '1234', foo_id: '1234', name: 'Some Document'), @queue.pop
+    assert_equal CouchTap::Operations::EndTransactionOperation.new(1), @queue.pop
   end
 
   def test_inserting_rows_with_multiple_filters
     doc = {'_id' => '1234', 'type' => 'Bar', 'special' => true, 'name' => 'Some Document'}
     row = {'seq' => 3, 'id' => '1234', 'doc' => doc}
 
-    handler = @changes.handlers[0]
-    handler.expects(:insert).never
-    handler = @changes.handlers[1]
-    handler.expects(:delete)
-    handler.expects(:insert)
-    handler = @changes.handlers[2]
-    handler.expects(:delete)
-    handler.expects(:insert)
-
     @changes.send(:process_row, row)
-    assert_equal @changes.seq, 3
+
+    assert_equal 6, @queue.length
+    assert_equal CouchTap::Operations::BeginTransactionOperation.new, @queue.pop
+    assert_equal CouchTap::Operations::DeleteOperation.new(:bar, true, :bar_id, '1234'), @queue.pop
+    assert_equal CouchTap::Operations::InsertOperation.new(:bar, true, '1234', bar_id: '1234', name: 'Some Document'), @queue.pop
+    assert_equal CouchTap::Operations::DeleteOperation.new(:special_bar, true, :special_bar_id, '1234'), @queue.pop
+    assert_equal CouchTap::Operations::InsertOperation.new(:special_bar, true, '1234', special_bar_id: '1234', name: 'Some Document', special: true), @queue.pop
+    assert_equal CouchTap::Operations::EndTransactionOperation.new(3), @queue.pop
   end
 
   def test_deleting_rows
     row = {'seq' => 9, 'id' => '1234', 'deleted' => true}
 
-    @changes.handlers.each do |handler|
-      handler.expects(:delete).with({'_id' => row['id']}, @queue)
-    end
-
     @changes.send(:process_row, row)
 
-    assert_equal @changes.seq, 9
+    assert_equal 5, @queue.length
+    assert_equal CouchTap::Operations::BeginTransactionOperation.new, @queue.pop
+    assert_equal CouchTap::Operations::DeleteOperation.new(:foo, true, :foo_id, '1234'), @queue.pop
+    assert_equal CouchTap::Operations::DeleteOperation.new(:bar, true, :bar_id, '1234'), @queue.pop
+    assert_equal CouchTap::Operations::DeleteOperation.new(:special_bar, true, :special_bar_id, '1234'), @queue.pop
+    assert_equal CouchTap::Operations::EndTransactionOperation.new(9), @queue.pop
   end
 
   def test_returning_schema
@@ -68,21 +67,7 @@ class ChangesTest < Test::Unit::TestCase
     assert_equal @changes.schema(:items), schema
   end
 
-  def test_prepends_a_begin_transaction_operation
-    @executor.expects(:row).with(3)
-    @changes.send(:process_row, 'id' => '1234', 'seq' => 3, 'doc' => {})
-
-    assert_true @queue.pop.is_a? CouchTap::Operations::BeginTransactionOperation
-  end
-
-  def test_appends_an_end_transaction_operation
-    @executor.expects(:row).with(3)
-    @changes.send(:process_row, 'id' => '1234', 'seq' => 3, 'doc' => {})
-
-    @queue.pop
-    assert_true @queue.pop.is_a? CouchTap::Operations::EndTransactionOperation
-  end
-
+# TODO test the perform_request method too!!
 
   protected
 
@@ -90,13 +75,33 @@ class ChangesTest < Test::Unit::TestCase
     @changes = CouchTap::Changes.new(TEST_DB_ROOT) do
       database db: "sqlite:/"
       document :type => 'Foo' do
+        table :foo do
+        end
       end
       document :type => 'Bar' do
+        table :bar do
+        end
       end
       document :type => 'Bar', :special => true do
+        table :special_bar do
+        end
       end
     end
-    @changes.send(:prepare_consumer)
   end
 
+  def initialize_database(connection)
+    connection.create_table :foo do
+      String :name
+      Boolean :special
+    end
+
+    connection.create_table :bar do
+      String :name
+    end
+
+    connection.create_table :special_bar do
+      String :name
+      Boolean :special
+    end
+  end
 end

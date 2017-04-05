@@ -10,6 +10,14 @@ module CouchTap
         @id = id
         @primary_key = primary_key
       end
+
+      def ==(other)
+        other.is_a?(DeleteOperation) &&
+          table == other.table &&
+          top_level == other.top_level &&
+          id == other.id &&
+          primary_key == other.primary_key
+      end
     end
   end
 end

@@ -20,85 +20,78 @@ module CouchTap
 
       @queue = queue
 
+      @buffer = QueryBuffer.new
+
       @seq = find_or_create_sequence_number(name)
       logger.info "QueryExecutor successfully initialised with sequence: #{@seq}"
     end
 
-    def row(seq)
-      @seq = seq
-
-      logger.debug "Processing document with sequence: #{@seq}"
-
-      if @queue.length >= @batch_size
-        logger.debug "Starting batch!"
-        batch_summary = {}
-        buffer = transfer_queue_to_buffer
-        total_timing = measure do
-          @database.transaction do
-            buffer.each do |entity|
-              logger.debug "Processing queries for #{entity.name}"
-              batch_summary[entity.name] ||= []
-              if entity.any_delete?
-                delta = measure do
-                  database[entity.name].where({ entity.primary_key => entity.deletes }).delete
-                end
-                batch_summary[entity.name] << "Deleted #{entity.deletes.size} in #{delta} ms."
-                logger.debug "#{entity.name}: #{entity.deletes.size} rows deleted in #{delta} ms."
-              end
-              if entity.any_insert?
-                keys = columns(entity.name)
-                values = entity.insert_values(keys)
-                delta = measure do
-                  database[entity.name].import(keys, values)
-                end
-                batch_summary[entity.name] << "Inserted #{values.size} in #{delta} ms."
-                logger.debug "#{entity.name}:  #{values.size} rows inserted in #{delta} ms."
-              end
-            end
-
-            logger.debug "Changes applied, updating sequence number now to #{@seq}"
-            update_sequence(seq)
-            logger.debug "#{@name}'s new sequence: #{seq}"
-          end
+    def start
+      while op = @queue.pop
+        case op
+        when Operations::InsertOperation
+          @buffer.insert(op)
+        when Operations::DeleteOperation
+          @buffer.delete(op)
+        when Operations::BeginTransactionOperation
+          # Nothing
+        when Operations::EndTransactionOperation
+          @seq = op.sequence
+          run_transaction(@seq) if @buffer.size >= @batch_size
+        when Operations::CloseQueueOperation
+          logger.info "Queue closed, finishing..."
+          break
+        else
+          raise "Unknown operation #{op}"
         end
-
-        logger.info "Batch applied at #{@name} in #{total_timing} ms. Sequence: #{seq}"
-        logger.info "Summary: #{batch_summary}"
       end
     end
 
     private
 
-    def transfer_queue_to_buffer
-      buffer = QueryBuffer.new
-      @queue.length.times do 
-        item = @queue.pop
-        case item
-        when Operations::InsertOperation
-          buffer.insert(item)
-        when Operations::DeleteOperation
-          buffer.delete(item)
-        when Operations::BeginTransactionOperation, Operations::EndTransactionOperation
-          # Nothing
-        else
-          raise "Unknown operation #{item}"
+    def run_transaction(seq)
+      logger.debug "Starting batch!"
+      batch_summary = {}
+      total_timing = measure do
+        @database.transaction do
+          @buffer.each do |entity|
+           logger.debug "Processing queries for #{entity.name}"
+            batch_summary[entity.name] ||= []
+            if entity.any_delete?
+              delta = measure do
+                database[entity.name].where({ entity.primary_key => entity.deletes }).delete
+              end
+              batch_summary[entity.name] << "Deleted #{entity.deletes.size} in #{delta} ms."
+              logger.debug "#{entity.name}: #{entity.deletes.size} rows deleted in #{delta} ms."
+            end
+            if entity.any_insert?
+              keys = columns(entity.name)
+              values = entity.insert_values(keys)
+              delta = measure do
+                database[entity.name].import(keys, values)
+              end
+              batch_summary[entity.name] << "Inserted #{values.size} in #{delta} ms."
+              logger.debug "#{entity.name}:  #{values.size} rows inserted in #{delta} ms."
+            end
+          end
+
+          logger.debug "Changes applied, updating sequence number now to #{@seq}"
+          update_sequence(seq)
+          logger.debug "#{@name}'s new sequence: #{seq}"
         end
+
+        logger.info "Batch applied at #{@name} in #{total_timing} ms. Sequence: #{seq}"
+        logger.info "Summary: #{batch_summary}"
+
+        logger.debug "Clearing buffer"
+        @buffer.clear
       end
-      return buffer
     end
 
     def measure(&block)
       t0 = Time.now
       yield
       ((Time.now - t0) * 1000).round 2
-    end
-
-    def trigger_batch(size)
-      logger.debug "New buffer's size: #{size}"
-      if size >= @batch_size
-        logger.debug "Buffer's size: #{size} reached max size: #{@batch_size}. Triggering batch!!"
-        @ready_to_run = true
-      end
     end
 
     # TODO unite this cache and the one in changes.rb:48

@@ -12,6 +12,10 @@ module CouchTap
     def add_operation(op)
       @queue.push op
     end
+
+    def close
+      add_operation(Operations::CloseQueueOperation.new)
+    end
   end
 end
 

@@ -10,6 +10,14 @@ module CouchTap
         @id = id
         @attributes = attributes
       end
+
+      def ==(other)
+        other.is_a?(InsertOperation) &&
+          table == other.table &&
+          top_level == other.top_level &&
+          id == other.id &&
+          attributes == other.attributes
+      end
     end
   end
 end
