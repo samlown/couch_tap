@@ -88,6 +88,11 @@ class QueryExecutorTest < Test::Unit::TestCase
     executor = CouchTap::QueryExecutor.new 'items', db: 'sqlite:/', batch_size: 2
     initialize_database executor.database
 
+    executor.row 0 do
+      executor.insert(:items, false, 456, item_id: 456, name: 'dummy')
+      executor.insert(:items, false, 789, item_id: 789, name: 'dummy')
+    end
+
     assert_raises Sequel::DatabaseError do
       executor.row 1 do
         executor.delete(:items, true, item_id: 123)
@@ -95,7 +100,7 @@ class QueryExecutorTest < Test::Unit::TestCase
       end
     end
 
-    assert_equal 0, executor.database[:items].count
+    assert_equal 2, executor.database[:items].count
     assert_equal 0, executor.database[:couch_sequence].where(name: 'items').first[:seq]
   end
 
@@ -161,25 +166,24 @@ class QueryExecutorTest < Test::Unit::TestCase
     executor = CouchTap::QueryExecutor.new 'items', db: 'sqlite:/', batch_size: 2
     initialize_database executor.database
 
-    executor.database.create_table :groups do
+    executor.database.create_table :item_children do
       String :item_id
-      String :group_name
+      String :child_name
     end
 
     executor.row 1 do
       executor.insert(:items, true, 123, item_id: 123, count: 1, name: 'name')
-      executor.insert(:groups, false, 123, item_id: 123, group_name: 'group_name')
+      executor.insert(:item_children, false, 123, item_id: 123, child_name: 'child name')
     end
 
     executor.row 2 do
       executor.delete(:items, true, item_id: 123)
       executor.insert(:items, true, 123, item_id: 123, count: 2, name: 'another name')
-      executor.delete(:groups, false, item_id: 123)
-      executor.insert(:groups, false, 123, item_id: 123, group_name: 'another group name')
+      executor.delete(:item_children, false, item_id: 123)
+      executor.insert(:item_children, false, 123, item_id: 123, child_name: 'another child name')
     end
-
-    assert_equal [2], executor.database[:items].select(:count).to_a.map{ |i| i[:count] }
-    assert_equal ['another group name'], executor.database[:groups].select(:group_name).to_a.map{ |g| g[:group_name] }
+    assert_equal 2, executor.database[:items].first[:count]
+    assert_equal 'another child name', executor.database[:item_children].first[:child_name]
   end
 
   def test_cannot_delete_outside_a_row_document
