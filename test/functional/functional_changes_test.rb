@@ -52,6 +52,31 @@ class FunctionalChangesTest < Test::Unit::TestCase
   end
 
 
+  def test_delete_children
+    changes = CouchTap::Changes.new('couch_tap') do
+      database db: 'sqlite:/', batch_size: 1
+
+      document :type => 'Sale' do
+        table :sales do
+          column :audited_at, Time.now
+          collection :entries do
+            table :sale_entries, primary_key: false do
+              column :audited_at, Time.now
+            end
+          end
+        end
+      end
+    end
+
+    migrate_sample_database changes.database
+
+    changes.send(:process_row, { "id" => 1, "seq" => 111, "doc" => { "_id" => "50", "type" => "Sale", "code" => "Code 1", "amount" => 600, "entries" => [{ "price" => 500 }, { "price" => 100 }] }})
+    changes.send(:process_row, { "id" => "50", "seq" => 112, "deleted" => true } ) 
+
+    assert_equal 0, changes.database[:sales].count
+    assert_equal 0, changes.database[:sale_entries].count
+  end
+
   protected
 
   def migrate_sample_database(connection)
