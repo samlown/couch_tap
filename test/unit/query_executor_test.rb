@@ -146,7 +146,8 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_delete_nested_items
-    executor = CouchTap::QueryExecutor.new 'items', db: 'sqlite:/', batch_size: 2
+    queue = CouchTap::OperationsQueue.new
+    executor = CouchTap::QueryExecutor.new 'items', queue, db: 'sqlite:/', batch_size: 2
     initialize_database executor.database
 
     executor.database.create_table :item_children do
@@ -154,35 +155,18 @@ class QueryExecutorTest < Test::Unit::TestCase
       String :child_name
     end
 
-    executor.row 1 do
-      executor.insert(:items, true, 123, item_id: 123, count: 1, name: 'name')
-      executor.insert(:item_children, false, 123, item_id: 123, child_name: 'child name')
-    end
+    queue.add_operation(item_to_insert(true, 123))
+    queue.add_operation(CouchTap::Operations::InsertOperation.new(:item_children, false, 123, item_id: 123, child_name: 'child_name'))
+    executor.row 1
 
-    executor.row 2 do
-      executor.delete(:items, true, item_id: 123)
-      executor.insert(:items, true, 123, item_id: 123, count: 2, name: 'another name')
-      executor.delete(:item_children, false, item_id: 123)
-      executor.insert(:item_children, false, 123, item_id: 123, child_name: 'another child name')
-    end
-    assert_equal 2, executor.database[:items].first[:count]
-    assert_equal 'another child name', executor.database[:item_children].first[:child_name]
-  end
+    queue.add_operation(item_to_delete(123))
+    queue.add_operation(CouchTap::Operations::InsertOperation.new(:items, true, 123, item_id: 123, count: 2, name: 'another name'))
+    queue.add_operation(CouchTap::Operations::DeleteOperation.new(:item_children, false, :item_id, 123))
+    queue.add_operation(CouchTap::Operations::InsertOperation.new(:item_children, false, 123, item_id: 123, child_name: 'another child name'))
+    executor.row 2
 
-  def test_cannot_delete_outside_a_row_document
-    executor = CouchTap::QueryExecutor.new 'items', db: 'sqlite:/', batch_size: 10
-    initialize_database executor.database
-
-    id = 123
-
-    executor.database[:items].insert(item_id: id, name: 'dummy')
-    assert_equal 1, executor.database[:items].count
-
-    assert_raises RuntimeError do
-      executor.delete(item_to_delete(123))
-    end
-
-    assert_equal 1, executor.database[:items].count
+    assert_equal [2], executor.database[:items].select(:count).to_a.map{ |i| i[:count] }
+    assert_equal ['another child name'], executor.database[:item_children].select(:child_name).to_a.map{ |g| g[:child_name] }
   end
 
   def test_sequence_number_defaults_to_zero
