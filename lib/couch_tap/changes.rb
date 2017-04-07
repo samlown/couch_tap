@@ -5,7 +5,7 @@ module CouchTap
     INACTIVITY_TIMEOUT = 70
     RECONNECT_TIMEOUT  = 15
 
-    attr_reader :source, :schemas, :handlers
+    attr_reader :source, :schemas, :handlers, :query_executor
 
     # Start a new Changes instance by connecting to the provided
     # CouchDB to see if the database exists.
@@ -56,6 +56,11 @@ module CouchTap
       @query_executor.seq
     end
 
+    def stop_consumer
+      @query_executor.stop
+      @consumer.join
+    end
+
     protected
 
     def perform_request
@@ -70,7 +75,7 @@ module CouchTap
 
       # Make sure the request has the latest sequence
       query = {:since => seq, :feed => 'continuous', :heartbeat => COUCHDB_HEARTBEAT * 1000,
-               :include_docs => true}
+               :include_docs => true, :limit => 1}
 
       while true do
         # Perform the actual request for chunked content
@@ -118,9 +123,10 @@ module CouchTap
     end
 
     def start_consumer
-      Thread.new do
+      @consumer = Thread.new do
         @query_executor.start
       end
+      @consumer.abort_on_exception = true
     end
 
     def find_document_handlers(document)

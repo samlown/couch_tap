@@ -37,11 +37,17 @@ module CouchTap
   def start
     threads = []
     @changes.each do |changes|
-      threads << Thread.new(changes) do |c|
+      t = Thread.new(changes) do |c|
         c.start
       end
+      t.abort_on_exception = true
+      threads << t
     end
     threads.each {|thr| thr.join}
+  end
+
+  def stop
+    @changes.each { |c| c.stop }
   end
 end
 

@@ -47,6 +47,10 @@ module CouchTap
       end
     end
 
+    def stop
+      @queue.close
+    end
+
     private
 
     def run_transaction(seq)
