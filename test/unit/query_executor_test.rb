@@ -224,6 +224,29 @@ class QueryExecutorTest < Test::Unit::TestCase
     File.delete('test.db')
   end
 
+  def test_running_a_batch_clears_the_buffer
+    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 2
+    initialize_database executor.database
+
+    @queue.add_operation(begin_transaction_operation)
+    @queue.add_operation(item_to_insert(true, 123))
+    @queue.add_operation(item_to_insert(true, 234))
+
+    t = Thread.new do
+      executor.start
+    end
+    t.abort_on_exception = true
+
+    sleep 0.1
+    assert_equal 2, executor.instance_variable_get(:@buffer).size
+
+    @queue.add_operation(end_transaction_operation(1))
+    @queue.close
+    t.join
+
+    assert_equal 0, executor.instance_variable_get(:@buffer).size
+  end
+
   private
 
   def initialize_database(connection)
