@@ -103,13 +103,12 @@ module CouchTap
           update_sequence(seq)
           logger.debug "#{@name}'s new sequence: #{seq}"
         end
-
-        logger.info "Batch applied at #{@name} in #{total_timing} ms. Sequence: #{seq}"
-        logger.info "Summary: #{batch_summary}"
-
-        logger.debug "Clearing buffer"
-        @buffer.clear
       end
+      logger.info "#{(@buffer.size < @batch_size) ? 'TIMED ' : '' }Batch applied at #{@name} in #{total_timing} ms. Sequence: #{seq}"
+      logger.info "Summary: #{batch_summary}"
+
+      logger.debug "Clearing buffer"
+      @buffer.clear
     end
 
     def measure(&block)

@@ -30,7 +30,7 @@ module CouchTap
 
     def database(cfg)
       @operations_queue = CouchTap::OperationsQueue.new
-      @query_executor = CouchTap::QueryExecutor.new(source.name, @operations_queue, cfg)
+      @query_executor = CouchTap::QueryExecutor.new(source.name, @operations_queue, cfg.merge(timeout: @timeout))
     end
 
     def document(filter = {}, &block)
