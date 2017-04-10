@@ -82,7 +82,7 @@ class ChangesTest < Test::Unit::TestCase
   protected
 
   def build_sample_config
-    @changes = CouchTap::Changes.new(TEST_DB_ROOT) do
+    @changes = CouchTap::Changes.new couch_db: TEST_DB_ROOT, timeout: 60 do
       database db: "sqlite:/"
       document :type => 'Foo' do
         table :foo do

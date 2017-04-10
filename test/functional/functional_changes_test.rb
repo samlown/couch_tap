@@ -252,7 +252,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
   protected
 
   def config_changes(opts)
-    changes = CouchTap::Changes.new('couch_tap') do
+    changes = CouchTap::Changes.new(couch_db: TEST_DB_ROOT, timeout: 60) do
       database db: 'sqlite:/', batch_size: opts.fetch(:batch_size)
 
       document type: 'Sale' do

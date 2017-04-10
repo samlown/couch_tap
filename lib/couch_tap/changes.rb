@@ -9,16 +9,16 @@ module CouchTap
 
     # Start a new Changes instance by connecting to the provided
     # CouchDB to see if the database exists.
-    def initialize(opts = "", &block)
+    def initialize(opts, &block)
       raise "Block required for changes!" unless block_given?
 
       @schemas  = {}
       @handlers = []
-      @source   = CouchRest.database(opts)
+      @source   = CouchRest.database(opts.fetch(:couch_db))
       info      = @source.info
       @http     = HTTPClient.new
 
-      @timeout  = 60
+      @timeout  = opts.fetch(:timeout, 60)
 
       logger.info "Connected to CouchDB: #{info['db_name']}"
 
