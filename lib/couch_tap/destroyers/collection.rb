@@ -18,10 +18,10 @@ module CouchTap
         instance_eval(&block)
       end
 
-      def execute
+      def execute(query_executor)
         # Just go through each table and ask it to execute itself
         @_tables.each do |table|
-          table.execute
+          table.execute(query_executor)
         end
       end
 

@@ -6,6 +6,7 @@ class ChangesTest < Test::Unit::TestCase
   def setup
     reset_test_db!
     build_sample_config
+    @executor = @changes.instance_variable_get(:@query_executor)
   end
 
   def test_basic_init
@@ -26,24 +27,22 @@ class ChangesTest < Test::Unit::TestCase
   end
 
   def test_inserting_rows
-    row = {'seq' => 1, 'id' => '1234'}
     doc = {'_id' => '1234', 'type' => 'Foo', 'name' => 'Some Document'}
-    @changes.expects(:fetch_document).with('1234').returns(doc)
+    row = {'seq' => 1, 'id' => '1234', 'doc' => doc}
 
     handler = @changes.handlers.first
-    handler.expects(:delete).with(doc)
-    handler.expects(:insert).with(doc)
+    handler.expects(:delete).with(doc, @executor)
+    handler.expects(:insert).with(doc, @executor)
 
     @changes.send(:process_row, row)
 
     # Should update seq
-    assert_equal @changes.database[:couch_sequence].first[:seq], 1
+    assert_equal @changes.seq, 1
   end
 
-  def test_inserting_rows_with_mutiple_filters
-    row = {'seq' => 3, 'id' => '1234'}
+  def test_inserting_rows_with_multiple_filters
     doc = {'_id' => '1234', 'type' => 'Bar', 'special' => true, 'name' => 'Some Document'}
-    @changes.expects(:fetch_document).with('1234').returns(doc)
+    row = {'seq' => 3, 'id' => '1234', 'doc' => doc}
 
     handler = @changes.handlers[0]
     handler.expects(:insert).never
@@ -55,19 +54,19 @@ class ChangesTest < Test::Unit::TestCase
     handler.expects(:insert)
 
     @changes.send(:process_row, row)
-    assert_equal @changes.database[:couch_sequence].first[:seq], 3
+    assert_equal @changes.seq, 3
   end
 
   def test_deleting_rows
     row = {'seq' => 9, 'id' => '1234', 'deleted' => true}
 
     @changes.handlers.each do |handler|
-      handler.expects(:delete).with({'_id' => row['id']})
+      handler.expects(:delete).with({'_id' => row['id']}, @executor)
     end
 
     @changes.send(:process_row, row)
 
-    assert_equal @changes.database[:couch_sequence].first[:seq], 9
+    assert_equal @changes.seq, 9
   end
 
   def test_returning_schema
@@ -82,7 +81,7 @@ class ChangesTest < Test::Unit::TestCase
 
   def build_sample_config
     @changes = CouchTap::Changes.new(TEST_DB_ROOT) do
-      database "sqlite:/"
+      database db: "sqlite:/"
       document :type => 'Foo' do
       end
       document :type => 'Bar' do

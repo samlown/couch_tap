@@ -5,6 +5,7 @@ module Builders
 
     def setup
       @parent = mock()
+      @executor = CouchTap::QueryExecutor.new('changes', db: 'sqlite:/')
     end
 
     def test_initialize_collection
@@ -66,7 +67,7 @@ module Builders
         table :invoice_items
       end
       @table.expects(:execute).twice
-      @collection.execute
+      @collection.execute(@executor)
     end
 
   end

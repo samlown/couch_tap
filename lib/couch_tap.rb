@@ -16,7 +16,7 @@ require 'couch_tap/builders/collection'
 require 'couch_tap/builders/table'
 require 'couch_tap/destroyers/collection'
 require 'couch_tap/destroyers/table'
-
+require 'couch_tap/query_executor'
 
 module CouchTap
   extend self
@@ -42,7 +42,7 @@ module CouchTap
 
   def prepare_logger
     log = Logger.new(STDOUT)
-    log.level = Logger::INFO
+    log.level = ENV.fetch('log_level', Logger::INFO).to_i
     log
   end
 

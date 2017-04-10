@@ -1,14 +1,11 @@
 
 module CouchTap
   class Changes
-
     COUCHDB_HEARTBEAT  = 30
     INACTIVITY_TIMEOUT = 70
     RECONNECT_TIMEOUT  = 15
 
-    attr_reader :source, :database, :schemas, :handlers
-
-    attr_accessor :seq
+    attr_reader :source, :schemas, :handlers
 
     # Start a new Changes instance by connecting to the provided
     # CouchDB to see if the database exists.
@@ -33,10 +30,9 @@ module CouchTap
     # or returns a previous definition.
     def database(opts = nil)
       if opts
-        @database ||= Sequel.connect(opts)
-        find_or_create_sequence_number
+        @query_executor = QueryExecutor.new(source.name, opts)
       end
-      @database
+      @query_executor.database
     end
 
     def document(filter = {}, &block)
@@ -54,8 +50,13 @@ module CouchTap
     # By this stage we should have a sequence id so we know where to start from
     # and all the filters should have been prepared.
     def start
+      raise "Cannot work without a DB destination!!" unless @query_executor
       prepare_parser
       perform_request
+    end
+
+    def seq
+      @query_executor.seq
     end
 
     protected
@@ -97,67 +98,30 @@ module CouchTap
     end
 
     def process_row(row)
-      t1 = Time.now
-      id  = row['id']
-
       # Sometimes CouchDB will send an update to keep the connection alive
-      if id
-        seq = row['seq']
-
+      if id  = row['id']
+        logger.debug "Processing Document with id #{id} in #{source.name}"
         # Wrap the whole request in a transaction
-        database.transaction do
+        @query_executor.row row['seq'] do
           if row['deleted']
-            action = 'DELETE'
             # Delete all the entries
-            handlers.each{ |handler| handler.delete('_id' => id) }
+            handlers.each{ |handler| handler.delete({ '_id' => id }, @query_executor) }
           else
-            action = 'CHANGE'
             doc = row['doc']
             find_document_handlers(doc).each do |handler|
               # Delete all previous entries of doc, then re-create
-              handler.delete(doc)
-              handler.insert(doc)
+              handler.delete(doc, @query_executor)
+              handler.insert(doc, @query_executor)
             end
           end
-          delta = (Time.now - t1) * 1000
-          logger.info "#{source.name}: received #{action} seq: #{seq} id: #{id} - (#{delta} ms.)"
-
-          update_sequence(seq)
         end # transaction
-
       elsif row['last_seq']
         logger.info "#{source.name}: received last seq: #{row['last_seq']}"
       end
     end
 
-    def fetch_document(id)
-      source.get(id)
-    end
-
     def find_document_handlers(document)
       @handlers.reject{ |row| !row.handles?(document) }
-    end
-
-    def find_or_create_sequence_number
-      create_sequence_table unless database.table_exists?(:couch_sequence)
-      row = database[:couch_sequence].where(:name => source.name).first
-      self.seq = (row ? row[:seq] : 0)
-    end
-
-    def update_sequence(seq)
-      database[:couch_sequence].where(:name => source.name).update(:seq => seq)
-      self.seq = seq
-    end
-
-    def create_sequence_table
-      database.create_table :couch_sequence do
-        String :name, :primary_key => true
-        Bignum :seq, :default => 0
-        DateTime :created_at
-        DateTime :updated_at
-      end
-      # Add first row
-      database[:couch_sequence].insert(:name => source.name)
     end
 
     def logger

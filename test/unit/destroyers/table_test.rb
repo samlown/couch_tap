@@ -5,7 +5,8 @@ module Destroyers
   class TableTest < Test::Unit::TestCase
 
     def setup
-      @database = create_database
+      @executor = CouchTap::QueryExecutor.new('changes', db: 'sqlite:/')
+      @database = initialize_database(@executor.database)
       @changes = mock()
       @changes.stubs(:database).returns(@database)
       @changes.stubs(:schema).returns(CouchTap::Schema.new(@database, :items))
@@ -62,7 +63,9 @@ module Destroyers
       @database[:items].insert(:name => "Test Item 1", :item_id => "12345")
       assert_equal @database[:items].count, 1, "Did not create sample row correctly!"
       @row = CouchTap::Destroyers::Table.new(@handler, :items)
-      @row.execute
+      @executor.row 1 do
+        @row.execute(@executor)
+      end
       assert_equal 0, @database[:items].count
     end
 
@@ -78,7 +81,9 @@ module Destroyers
         end
       end
       @col.expects(:execute).twice
-      @row.execute
+      @executor.row 1 do
+        @row.execute(@executor)
+      end
     end
 
     def test_column_returns_nil
@@ -100,21 +105,20 @@ module Destroyers
 
     protected
 
-    def create_database
-      database = Sequel.sqlite
-      database.create_table :items do
+    def initialize_database(connection)
+      connection.create_table :items do
         String :item_id
         String :name
         Time :created_at
         index :item_id, :unique => true
       end
-      database.create_table :groups do
+      connection.create_table :groups do
         String :group_id
         String :name
         Time :created_at
         index :group_id, :unique => true
       end
-      database
+      connection
     end
   end
 end

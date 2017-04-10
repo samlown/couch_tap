@@ -7,7 +7,7 @@ Bundler::GemHelper.install_tasks
 
 Rake::TestTask.new do |t|
   t.libs << 'test'
-  t.test_files = FileList.new('test/unit/**/*.rb')
+  t.test_files = FileList.new('test/**/*.rb')
 end
 
 desc "Run tests"
