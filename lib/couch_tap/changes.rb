@@ -82,7 +82,7 @@ module CouchTap
 
       # Make sure the request has the latest sequence
       query = {:since => seq, :feed => 'continuous', :heartbeat => COUCHDB_HEARTBEAT * 1000,
-               :include_docs => true, :limit => 1}
+               :include_docs => true}
 
       while true do
         # Perform the actual request for chunked content
