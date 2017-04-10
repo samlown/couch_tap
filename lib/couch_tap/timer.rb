@@ -6,12 +6,10 @@ module CouchTap
 
     attr_reader :status
 
-    def initialize(timeout, callback_object, callback_method, tick = 1)
+    def initialize(timeout, &block)
       @timeout = timeout
-      @callback_object = callback_object
-      @callback_method = callback_method
+      @block = block
       @status = IDLE_STATUS
-      @tick = 1
 
       logger.debug "Timer configured with #{@timeout} s."
     end
@@ -21,14 +19,13 @@ module CouchTap
       @status = RUNNING_STATUS
       logger.debug "Timer starting!"
       @thread = Thread.new do
-        while @status == RUNNING_STATUS
-          t = Time.now
-          begin
-            sleep @tick
-          end while (Time.now - t) < @timeout
-          logger.debug "Timer firing #{@callback_object.class}##{@callback_method}"
-          @callback_object.send(@callback_method)
-        end
+        begin
+          sleep @timeout
+          if @status == RUNNING_STATUS
+            logger.debug "Timer firing #{@callback_object.class}##{@callback_method}"
+            @block.call
+          end
+        end while @status == RUNNING_STATUS
       end
       @thread.abort_on_exception = true
     end

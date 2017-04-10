@@ -2,15 +2,18 @@ require 'test_helper'
 
 class TimerTest < Test::Unit::TestCase
 
-  def test_runs_callback_and_stops
+  def test_runs_block_until_stopped
     witness = mock()
-    witness.expects(:timer_finished)
+    witness.expects(:timer_finished).twice
 
-    timer = CouchTap::Timer.new(0.1, witness, :timer_finished, 0.1)
+    timer = CouchTap::Timer.new 0.1 do
+      witness.timer_finished
+    end
+
     timer.run
     assert_equal CouchTap::Timer::RUNNING_STATUS, timer.status
 
-    sleep 0.1
+    sleep 0.3
     timer.wait
 
     assert_equal CouchTap::Timer::IDLE_STATUS, timer.status
@@ -22,7 +25,10 @@ class TimerTest < Test::Unit::TestCase
 
     Thread.expects(:new).once.returns(th)
 
-    timer = CouchTap::Timer.new(0.1, mock(), :timer_finished, 0.1)
+    timer = CouchTap::Timer.new 0.1 do
+      mock().timer_finished
+    end
+
     timer.run
     timer.run
   end
