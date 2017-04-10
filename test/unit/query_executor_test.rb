@@ -247,6 +247,51 @@ class QueryExecutorTest < Test::Unit::TestCase
     assert_equal 0, executor.instance_variable_get(:@buffer).size
   end
 
+  def test_timer_signal_runs_the_transaction
+    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 200
+    initialize_database executor.database
+
+    @queue.add_operation(begin_transaction_operation)
+    @queue.add_operation(item_to_insert(true, 123))
+    @queue.add_operation(end_transaction_operation(1))
+    @queue.add_operation(CouchTap::Operations::TimerFiredSignal.new)
+    @queue.close
+
+    executor.start
+
+    assert_equal 1, executor.database[:items].count
+  end
+
+  def test_timer_signal_schedules_the_transaction_to_run
+    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 200
+    initialize_database executor.database
+
+    @queue.add_operation(begin_transaction_operation)
+    @queue.add_operation(item_to_insert(true, 123))
+    @queue.add_operation(CouchTap::Operations::TimerFiredSignal.new)
+    @queue.add_operation(end_transaction_operation(1))
+    @queue.close
+
+    executor.start
+
+    assert_equal 1, executor.database[:items].count
+  end
+
+  def test_timer_signal_is_skipped_if_last_transaction_ran_too_close
+    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 1
+    initialize_database executor.database
+
+    @queue.add_operation(begin_transaction_operation)
+    @queue.add_operation(item_to_insert(true, 123))
+    @queue.add_operation(end_transaction_operation(1))
+    @queue.add_operation(CouchTap::Operations::TimerFiredSignal.new)
+    @queue.close
+
+    executor.database.expects(:transaction).once
+
+    executor.start
+  end
+
   private
 
   def initialize_database(connection)

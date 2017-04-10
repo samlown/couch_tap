@@ -22,6 +22,11 @@ module CouchTap
 
       @buffer = QueryBuffer.new
 
+      @transaction_open = false
+      @timer_fired = false
+      @last_transaction_ran_at = Time.at(0)
+
+      @timeout_time = data.fetch(:timeout, 60)
       @seq = find_or_create_sequence_number(name)
       logger.info "QueryExecutor successfully initialised with sequence: #{@seq}"
     end
@@ -34,13 +39,23 @@ module CouchTap
         when Operations::DeleteOperation
           @buffer.delete(op)
         when Operations::BeginTransactionOperation
-          # Nothing
+          @transaction_open = true
         when Operations::EndTransactionOperation
+          @transaction_open = false
           @seq = op.sequence
-          run_transaction(@seq) if @buffer.size >= @batch_size
+          if @buffer.size >= @batch_size || @timer_fired
+            run_transaction(@seq)
+            @timer_fired = false
+          end
         when Operations::CloseQueueOperation
           logger.info "Queue closed, finishing..."
           break
+        when Operations::TimerFiredSignal
+          if @transaction_open
+            @timer_fired = true
+          else
+            run_transaction(@seq)
+          end
         else
           raise "Unknown operation #{op}"
         end
@@ -54,6 +69,11 @@ module CouchTap
     private
 
     def run_transaction(seq)
+      if @buffer.size < @batch_size
+        # Transaction was fired by the timer
+        return if (Time.now - @last_transaction_ran_at) < @timeout_time
+      end
+      @last_transaction_ran_at = Time.now
       logger.debug "Starting batch!"
       batch_summary = {}
       total_timing = measure do
