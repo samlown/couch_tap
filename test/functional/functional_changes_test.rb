@@ -239,13 +239,13 @@ class FunctionalChangesTest < Test::Unit::TestCase
   def test_delete_children
     changes = config_changes batch_size: 1
 
-    migrate_sample_database changes.database
-
     changes.send(:process_row, { "id" => 1, "seq" => 111, "doc" => { "_id" => "50", "type" => "Sale", "code" => "Code 1", "amount" => 600, "entries" => [{ "price" => 500 }, { "price" => 100 }] }})
     changes.send(:process_row, { "id" => "50", "seq" => 112, "deleted" => true } )
 
-    assert_equal 0, changes.database[:sales].count
-    assert_equal 0, changes.database[:sale_entries].count
+    changes.stop_consumer
+
+    assert_equal 0, @database[:sales].count
+    assert_equal 0, @database[:sale_entries].count
     assert_sequence changes.seq, 112
   end
 
