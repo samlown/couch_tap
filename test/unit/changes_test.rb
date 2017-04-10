@@ -69,6 +69,16 @@ class ChangesTest < Test::Unit::TestCase
 
 # TODO test the perform_request method too!!
 
+  def test_timer_signal
+    @changes.instance_variable_set(:@timeout, 0.1)
+    @changes.send(:start_timer)
+    sleep 0.2
+    @changes.stop_timer
+
+    assert_equal 1, @queue.length
+    assert @queue.pop.is_a? CouchTap::Operations::TimerFiredSignal
+  end
+
   protected
 
   def build_sample_config

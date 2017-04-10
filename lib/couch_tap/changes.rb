@@ -18,6 +18,8 @@ module CouchTap
       info      = @source.info
       @http     = HTTPClient.new
 
+      @timeout  = 60
+
       logger.info "Connected to CouchDB: #{info['db_name']}"
 
       # Prepare the definitions
@@ -48,6 +50,7 @@ module CouchTap
     def start
       raise "Cannot work without a DB destination!!" unless @query_executor
       start_consumer
+      start_timer
       prepare_parser
       perform_request
     end
@@ -59,6 +62,10 @@ module CouchTap
     def stop_consumer
       @query_executor.stop
       @consumer.join
+    end
+
+    def stop_timer
+      @timer.wait
     end
 
     protected
@@ -127,6 +134,13 @@ module CouchTap
         @query_executor.start
       end
       @consumer.abort_on_exception = true
+    end
+
+    def start_timer
+      @timer = Timer.new @timeout do
+        @operations_queue.add_operation Operations::TimerFiredSignal.new
+      end
+      @timer.run
     end
 
     def find_document_handlers(document)

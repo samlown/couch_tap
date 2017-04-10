@@ -24,6 +24,7 @@ require 'couch_tap/operations/delete_operation'
 require 'couch_tap/operations/begin_transaction_operation'
 require 'couch_tap/operations/end_transaction_operation'
 require 'couch_tap/operations/close_queue_operation'
+require 'couch_tap/operations/timer_fired_signal'
 require 'couch_tap/operations_queue'
 
 module CouchTap
