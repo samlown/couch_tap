@@ -5,7 +5,8 @@ module Destroyers
   class TableTest < Test::Unit::TestCase
 
     def setup
-      @executor = CouchTap::QueryExecutor.new('changes', db: 'sqlite:/')
+      @queue = CouchTap::OperationsQueue.new
+      @executor = CouchTap::QueryExecutor.new('changes', @queue, db: 'sqlite:/')
       @database = initialize_database(@executor.database)
       @changes = mock()
       @changes.stubs(:database).returns(@database)
@@ -20,12 +21,12 @@ module Destroyers
       @row = CouchTap::Destroyers::Table.new(@handler, 'items')
 
       assert_not_equal keys, @row.primary_keys
-      assert_equal @row.primary_keys, [:item_id]
+      assert_equal [:item_id], @row.primary_keys
     end
 
     def test_init_override_primary_key
       @row = CouchTap::Destroyers::Table.new(@handler, 'items', :primary_key => 'foo_item_id')
-      assert_equal @row.primary_keys, [:foo_item_id]
+      assert_equal [:foo_item_id], @row.primary_keys
     end
 
     def test_handler
@@ -60,13 +61,11 @@ module Destroyers
     end
 
     def test_execution_deletes_rows
-      @database[:items].insert(:name => "Test Item 1", :item_id => "12345")
-      assert_equal @database[:items].count, 1, "Did not create sample row correctly!"
       @row = CouchTap::Destroyers::Table.new(@handler, :items)
-      @executor.row 1 do
-        @row.execute(@executor)
-      end
-      assert_equal 0, @database[:items].count
+      @row.execute(@queue)
+
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::DeleteOperation.new(:items, true, :item_id, '12345'), @queue.pop
     end
 
     def test_execution_on_collections
@@ -81,9 +80,7 @@ module Destroyers
         end
       end
       @col.expects(:execute).twice
-      @executor.row 1 do
-        @row.execute(@executor)
-      end
+      @row.execute(@queue)
     end
 
     def test_column_returns_nil

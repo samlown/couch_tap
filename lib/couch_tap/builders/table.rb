@@ -45,10 +45,6 @@ module CouchTap
       end
       alias doc document
 
-      def database
-        @database ||= handler.database
-      end
-
       # Grab the latest set of values to filter with.
       # This is only relevant in sub-tables.
       def key_filter
@@ -79,10 +75,9 @@ module CouchTap
 
       #### Support Methods
 
-      def execute(query_executor)
+      def execute(operations_queue)
         # Insert the record and prepare ID for sub-tables
-        # dataset.insert(attributes§)
-        query_executor.insert(name, parent.is_a?(DocumentHandler), id, attributes)
+        operations_queue.add_operation(CouchTap::Operations::InsertOperation.new(name, parent.is_a?(DocumentHandler), id, attributes))
 
         # TODO remove this?
         set_attribute(primary_keys.last, id) unless id.blank?
@@ -90,7 +85,7 @@ module CouchTap
         # Now go through each collection entry
         if @_collections.length > 0
           @_collections.each do |collection|
-            collection.execute(query_executor)
+            collection.execute(operations_queue)
           end
         end
       end

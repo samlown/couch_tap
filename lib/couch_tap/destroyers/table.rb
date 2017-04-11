@@ -30,11 +30,11 @@ module CouchTap
         instance_eval(&block) if block_given?
       end
 
-      def execute(query_executor)
-        query_executor.delete(name, parent.is_a?(DocumentHandler), key_filter)
+      def execute(operations_queue)
+        operations_queue.add_operation(CouchTap::Operations::DeleteOperation.new(name, parent.is_a?(DocumentHandler), @primary_keys.first, handler.id))
 
         @_collections.each do |collection|
-          collection.execute(query_executor)
+          collection.execute(operations_queue)
         end
       end
 

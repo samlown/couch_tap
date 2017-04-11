@@ -3,18 +3,20 @@ module CouchTap
   class QueryBuffer
     include Enumerable
 
+    attr_reader :size
+
     def initialize()
       @buffer = {}
       @size = 0
     end
 
-    def insert(entity, top_level, id, attributes)
-      get_or_create(entity, top_level).insert(id, attributes)
+    def insert(operation)
+      get_or_create(operation.table, operation.top_level).insert(operation.id, operation.attributes)
       @size += 1
     end
 
-    def delete(entity, top_level, key, id)
-      get_or_create(entity, top_level).delete(key, id)
+    def delete(operation)
+      get_or_create(operation.table, operation.top_level).delete(operation.primary_key, operation.id)
       @size += 1
     end
 

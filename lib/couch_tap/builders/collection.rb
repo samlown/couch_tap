@@ -19,9 +19,9 @@ module CouchTap
         instance_eval(&block)
       end
 
-      def execute(query_executor)
+      def execute(operations_queue)
         @_tables.each do |table|
-          table.execute(query_executor)
+          table.execute(operations_queue)
         end
       end
 

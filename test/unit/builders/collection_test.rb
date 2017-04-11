@@ -5,7 +5,8 @@ module Builders
 
     def setup
       @parent = mock()
-      @executor = CouchTap::QueryExecutor.new('changes', db: 'sqlite:/')
+      @queue = CouchTap::OperationsQueue.new
+      @executor = CouchTap::QueryExecutor.new('changes', @queue, db: 'sqlite:/')
     end
 
     def test_initialize_collection
