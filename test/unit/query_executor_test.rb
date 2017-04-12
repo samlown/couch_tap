@@ -292,6 +292,18 @@ class QueryExecutorTest < Test::Unit::TestCase
     executor.start
   end
 
+  def test_empty_batches_are_skipped
+    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 1
+    initialize_database executor.database
+
+    @queue.add_operation(CouchTap::Operations::TimerFiredSignal.new)
+    @queue.close
+
+    executor.database.expects(:transaction).never
+
+    executor.start
+  end
+
   private
 
   def initialize_database(connection)
