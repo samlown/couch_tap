@@ -69,6 +69,10 @@ module CouchTap
     private
 
     def run_transaction(seq)
+      if @buffer.size == 0
+        logger.info "Skipping empty batch"
+        return
+      end
       if @buffer.size < @batch_size
         # Transaction was fired by the timer
         return if (Time.now - @last_transaction_ran_at) < @timeout_time
