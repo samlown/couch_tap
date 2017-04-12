@@ -70,7 +70,7 @@ module CouchTap
 
     def run_transaction(seq)
       if @buffer.size == 0
-        logger.info "Skipping empty batch"
+        logger.info "Skipping empty batch for #{@name}"
         return
       end
       if @buffer.size < @batch_size
