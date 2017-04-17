@@ -17,6 +17,7 @@ Gem::Specification.new do |s|
   s.add_dependency "yajl-ruby", "~> 1.1.0"
   s.add_dependency "sequel", ">= 4.36.0"
   s.add_dependency "activesupport", "~> 4.0"
+  s.add_dependency "dogstatsd-ruby"
   s.add_development_dependency "mocha"
   s.add_development_dependency "sqlite3"
   s.add_development_dependency "test-unit"

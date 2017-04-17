@@ -4,6 +4,7 @@ PATH
     couch_tap (0.4.1)
       activesupport (~> 4.0)
       couchrest (~> 1.1.3)
+      dogstatsd-ruby
       httpclient (~> 2.6)
       sequel (>= 4.36.0)
       yajl-ruby (~> 1.1.0)
@@ -21,6 +22,7 @@ GEM
       mime-types (~> 1.15)
       multi_json (~> 1.0)
       rest-client (~> 1.6.1)
+    dogstatsd-ruby (2.2.0)
     httpclient (2.8.3)
     i18n (0.8.1)
     metaclass (0.0.1)
