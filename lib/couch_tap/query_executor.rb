@@ -6,7 +6,7 @@ module CouchTap
 
     attr_reader :database, :seq
 
-    def initialize(name, queue, data)
+    def initialize(name, queue, metrics, data)
       logger.debug "Connecting to db at #{data.fetch :db}"
       @database = Sequel.connect(data.fetch(:db))
       @database.loggers << logger
@@ -17,7 +17,7 @@ module CouchTap
 
       @schemas = {}
       @name = name
-
+      @metrics = metrics
       @queue = queue
 
       @buffer = QueryBuffer.new
@@ -79,6 +79,7 @@ module CouchTap
       end
       @last_transaction_ran_at = Time.now
       logger.debug "Starting batch!"
+      @metrics.increment('couch_tap.transactions')
       batch_summary = {}
       total_timing = measure do
         @database.transaction do
@@ -89,6 +90,8 @@ module CouchTap
               delta = measure do
                 database[entity.name].where({ entity.primary_key => entity.deletes }).delete
               end
+              @metrics.histogram('couch_tap.delete.time', delta, table_name: entity.name)
+              @metrics.increment('couch_tap.delete', entity.deletes.size, table_name: entity.name)
               batch_summary[entity.name] << "Deleted #{entity.deletes.size} in #{delta} ms."
               logger.debug "#{entity.name}: #{entity.deletes.size} rows deleted in #{delta} ms."
             end
@@ -98,6 +101,8 @@ module CouchTap
               delta = measure do
                 database[entity.name].import(keys, values)
               end
+              @metrics.histogram('couch_tap.insert.time', delta, table_name: entity.name)
+              @metrics.increment('couch_tap.insert', values.size, table_name: entity.name)
               batch_summary[entity.name] << "Inserted #{values.size} in #{delta} ms."
               logger.debug "#{entity.name}:  #{values.size} rows inserted in #{delta} ms."
             end
@@ -108,6 +113,7 @@ module CouchTap
           logger.debug "#{@name}'s new sequence: #{seq}"
         end
       end
+      @metrics.histogram('couch_tap.transactions.time', total_timing)
       logger.info "#{(@buffer.size < @batch_size) ? 'TIMED ' : '' }Batch applied at #{@name} in #{total_timing} ms. Sequence: #{seq}"
       logger.info "Summary: #{batch_summary}"
 

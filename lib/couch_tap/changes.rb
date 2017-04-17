@@ -16,6 +16,7 @@ module CouchTap
       @handlers = []
       @source   = CouchRest.database(opts.fetch(:couch_db))
       info      = @source.info
+      @metrics  = Metrics.new(couch_db: @source.name)
       @http     = HTTPClient.new
 
       @timeout  = opts.fetch(:timeout, 60)
@@ -30,7 +31,7 @@ module CouchTap
 
     def database(cfg)
       @operations_queue = CouchTap::OperationsQueue.new
-      @query_executor = CouchTap::QueryExecutor.new(source.name, @operations_queue, cfg.merge(timeout: @timeout))
+      @query_executor = CouchTap::QueryExecutor.new(source.name, @operations_queue, @metrics, cfg.merge(timeout: @timeout))
     end
 
     def document(filter = {}, &block)
@@ -109,6 +110,7 @@ module CouchTap
     def process_row(row)
       # Sometimes CouchDB will send an update to keep the connection alive
       if id  = row['id']
+        @metrics.increment('couch_tap.documents_parsed')
         logger.debug "Processing Document with id #{id} in #{source.name}"
         # Wrap the whole request in a transaction
         @operations_queue.add_operation Operations::BeginTransactionOperation.new
@@ -150,6 +152,5 @@ module CouchTap
     def logger
       CouchTap.logger
     end
-
   end
 end
