@@ -91,12 +91,12 @@ module CouchTap
           @parser << chunk
         end
         logger.error "#{source.name}: connection ended, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
-        wait RECONNECT_TIMEOUT
+        sleep RECONNECT_TIMEOUT
       end
 
     rescue HTTPClient::TimeoutError, HTTPClient::BadResponseError => e
       logger.error "#{source.name}: connection failed: #{e.message}, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
-      wait RECONNECT_TIMEOUT
+      sleep RECONNECT_TIMEOUT
       retry
     end
 

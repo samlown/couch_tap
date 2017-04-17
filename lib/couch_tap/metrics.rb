@@ -9,12 +9,12 @@ module CouchTap
       @tags = tags
     end
 
-    def increment(key, value = 1, tags = {})
-      @statsd.count(key, value, tags.merge(@tags))
+    def increment(key, tags = {})
+      @statsd.increment(key, tags: tags.merge(@tags))
     end
 
     def histogram(key, value, tags = {})
-      @statsd.histogram(key, value, tags.merge(@tags))
+      @statsd.histogram(key, value, tags: tags.merge(@tags))
     end
   end
 end
