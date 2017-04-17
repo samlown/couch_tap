@@ -15,13 +15,12 @@ module CouchTap
       @schemas  = {}
       @handlers = []
       @source   = CouchRest.database(opts.fetch(:couch_db))
-      info      = @source.info
       @metrics  = Metrics.new(couch_db: @source.name)
       @http     = HTTPClient.new
 
       @timeout  = opts.fetch(:timeout, 60)
 
-      logger.info "Connected to CouchDB: #{info['db_name']}"
+      logger.info "Connected to CouchDB: #{@source.info['db_name']}"
 
       # Prepare the definitions
       instance_eval(&block)
