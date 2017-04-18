@@ -9,16 +9,16 @@ module CouchTap
       @tags = tags
     end
 
-    def increment(key, value = 1, tags = {})
-      if value == 1
-        @statsd.increment(key, tags: build_tags(tags))
-      else
-        @statsd.count(key, value, tags: build_tags(tags))
-      end
+    def increment(key, tags = {})
+      @statsd.increment(key, tags: build_tags(tags))
     end
 
     def histogram(key, value, tags = {})
       @statsd.histogram(key, value, tags: build_tags(tags))
+    end
+
+    def gauge(key, value, tags = {})
+      @statsd.gauge(key, value, tags: build_tags(tags))
     end
 
     private

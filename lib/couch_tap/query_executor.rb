@@ -79,7 +79,8 @@ module CouchTap
       end
       @last_transaction_ran_at = Time.now
       logger.debug "Starting batch!"
-      @metrics.increment('couch_tap.transactions')
+      @metrics.increment('couch_tap.transactions.count')
+      @metrics.gauge('couch_tap.queue.back_pressure', @queue.length)
       batch_summary = {}
       total_timing = measure do
         @database.transaction do
@@ -91,7 +92,7 @@ module CouchTap
                 database[entity.name].where({ entity.primary_key => entity.deletes }).delete
               end
               @metrics.histogram('couch_tap.delete.time', delta, table_name: entity.name)
-              @metrics.increment('couch_tap.delete', entity.deletes.size, table_name: entity.name)
+              @metrics.gauge('couch_tap.delete.latency.unit', delta/entity.deletes.size.to_f, table_name: entity.name)
               batch_summary[entity.name] << "Deleted #{entity.deletes.size} in #{delta} ms."
               logger.debug "#{entity.name}: #{entity.deletes.size} rows deleted in #{delta} ms."
             end
@@ -102,7 +103,7 @@ module CouchTap
                 database[entity.name].import(keys, values)
               end
               @metrics.histogram('couch_tap.insert.time', delta, table_name: entity.name)
-              @metrics.increment('couch_tap.insert', values.size, table_name: entity.name)
+              @metrics.gauge('couch_tap.insert.latency.unit', delta/values.size.to_f, table_name: entity.name)
               batch_summary[entity.name] << "Inserted #{values.size} in #{delta} ms."
               logger.debug "#{entity.name}:  #{values.size} rows inserted in #{delta} ms."
             end
