@@ -109,7 +109,7 @@ module CouchTap
     def process_row(row)
       # Sometimes CouchDB will send an update to keep the connection alive
       if id  = row['id']
-        @metrics.increment('couch_tap.documents_parsed')
+        @metrics.increment('documents_parsed.count')
         logger.debug "Processing Document with id #{id} in #{source.name}"
         # Wrap the whole request in a transaction
         @operations_queue.add_operation Operations::BeginTransactionOperation.new
