@@ -79,7 +79,7 @@ module CouchTap
       end
       @last_transaction_ran_at = Time.now
       logger.debug "Starting batch!"
-      @metrics.increment('transactions.count')
+      @metrics.increment('transactions')
       @metrics.gauge('queue.back_pressure', @queue.length)
       batch_summary = {}
       total_timing = measure do
