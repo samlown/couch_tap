@@ -8,8 +8,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_insert_saves_the_data_if_not_full
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 10
-    initialize_database executor.database
+    executor = config_executor 10
 
     @queue.add_operation(begin_transaction_operation)
     @queue.add_operation(item_to_insert(true, 123))
@@ -22,8 +21,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_insert_runs_the_query_if_full
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 2
-    initialize_database executor.database
+    executor = config_executor 2
 
     @queue.add_operation(begin_transaction_operation)
     @queue.add_operation(item_to_insert(true, 123))
@@ -36,8 +34,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_insert_fails_rollsback_the_transaction
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 2
-    initialize_database executor.database
+    executor = config_executor 2
 
     @queue.add_operation(begin_transaction_operation)
     @queue.add_operation(item_to_insert(false, 123))
@@ -54,8 +51,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_delete_saves_the_data_if_not_full
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 10
-    initialize_database executor.database
+    executor = config_executor 10
 
     id = 123
 
@@ -73,8 +69,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_delete_runs_the_query_if_full
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 1
-    initialize_database executor.database
+    executor = config_executor 1
 
     id = 123
 
@@ -92,8 +87,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_delete_fails_rollsback_the_transaction
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 2
-    initialize_database executor.database
+    executor = config_executor 2
 
     id = 123
 
@@ -114,8 +108,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_create_and_delete_same_row
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 2
-    initialize_database executor.database
+    executor = config_executor 2
 
     @queue.add_operation(begin_transaction_operation)
     @queue.add_operation(item_to_insert(true, 123))
@@ -130,8 +123,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_includes_whole_row_even_if_batch_gets_oversized
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 2
-    initialize_database executor.database
+    executor = config_executor 2
 
     @queue.add_operation(begin_transaction_operation)
     @queue.add_operation(item_to_insert(true, 123))
@@ -148,8 +140,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_combined_workload
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 3
-    initialize_database executor.database
+    executor = config_executor 3
 
     # Create and destroy item 123
     @queue.add_operation(begin_transaction_operation)
@@ -179,8 +170,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_delete_nested_items
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 2
-    initialize_database executor.database
+    executor = config_executor 2
 
     executor.database.create_table :item_children do
       String :item_id
@@ -208,25 +198,23 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_sequence_number_defaults_to_zero
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 10
-    initialize_database executor.database
+    executor = config_executor 10
     assert_equal 0, executor.seq
   end
 
   def test_sequence_number_is_loaded_on_initialization
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite://test.db', batch_size: 10
+    executor = CouchTap::QueryExecutor.new 'items', @queue, CouchTap::Metrics.new, db: 'sqlite://test.db', batch_size: 10
     initialize_database executor.database
     executor.database[:couch_sequence].where(name: 'items').update(seq: 432)
 
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite://test.db', batch_size: 10
+    executor = CouchTap::QueryExecutor.new 'items', @queue, CouchTap::Metrics.new, db: 'sqlite://test.db', batch_size: 10
     assert_equal 432, executor.seq
 
     File.delete('test.db')
   end
 
   def test_running_a_batch_clears_the_buffer
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 2
-    initialize_database executor.database
+    executor = config_executor 2
 
     @queue.add_operation(begin_transaction_operation)
     @queue.add_operation(item_to_insert(true, 123))
@@ -248,8 +236,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_timer_signal_runs_the_transaction
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 200
-    initialize_database executor.database
+    executor = config_executor 200
 
     @queue.add_operation(begin_transaction_operation)
     @queue.add_operation(item_to_insert(true, 123))
@@ -263,8 +250,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_timer_signal_schedules_the_transaction_to_run
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 200
-    initialize_database executor.database
+    executor = config_executor 200
 
     @queue.add_operation(begin_transaction_operation)
     @queue.add_operation(item_to_insert(true, 123))
@@ -278,8 +264,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_timer_signal_is_skipped_if_last_transaction_ran_too_close
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 1
-    initialize_database executor.database
+    executor = config_executor  1
 
     @queue.add_operation(begin_transaction_operation)
     @queue.add_operation(item_to_insert(true, 123))
@@ -293,8 +278,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_empty_batches_are_skipped
-    executor = CouchTap::QueryExecutor.new 'items', @queue, db: 'sqlite:/', batch_size: 1
-    initialize_database executor.database
+    executor = config_executor 1
 
     @queue.add_operation(CouchTap::Operations::TimerFiredSignal.new)
     @queue.close
@@ -305,6 +289,13 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   private
+
+  def config_executor(batch_size, queue = @queue)
+    executor = CouchTap::QueryExecutor.new 'items', queue, CouchTap::Metrics.new, db: 'sqlite:/', batch_size: batch_size
+    initialize_database executor.database
+    return executor
+  end
+
 
   def initialize_database(connection)
     connection.create_table :items do

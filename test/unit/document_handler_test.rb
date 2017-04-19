@@ -5,7 +5,8 @@ class DocumentHandlerTest < Test::Unit::TestCase
 
   def test_init
     @queue = CouchTap::OperationsQueue.new
-    @executor = CouchTap::QueryExecutor.new('changes', @queue, db: 'sqlite:/')
+    @metrics = CouchTap::Metrics.new
+    @executor = CouchTap::QueryExecutor.new('changes', @queue, @metrics, db: 'sqlite:/')
     @handler = CouchTap::DocumentHandler.new 'changes' do
       #nothing
     end

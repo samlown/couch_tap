@@ -5,7 +5,8 @@ module Builders
 
     def setup
       @queue = CouchTap::OperationsQueue.new
-      @executor = CouchTap::QueryExecutor.new('changes', @queue, db: 'sqlite:/')
+      @metrics = CouchTap::Metrics.new
+      @executor = CouchTap::QueryExecutor.new('changes', @queue, @metrics, db: 'sqlite:/')
       @database = initialize_database(@executor.database)
       @changes = mock()
       @changes.stubs(:database).returns(@database)
