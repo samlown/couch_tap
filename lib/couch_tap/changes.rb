@@ -1,3 +1,4 @@
+require "retryable"
 
 module CouchTap
   class Changes
@@ -71,33 +72,37 @@ module CouchTap
     protected
 
     def perform_request
-      logger.info "#{source.name}: listening to changes feed from seq: #{seq}"
-
-      url = File.join(source.root, '_changes')
-      uri = URI.parse(url)
-      # Authenticate?
-      if uri.user.present? && uri.password.present?
-        @http.set_auth(source.root, uri.user, uri.password)
+      retry_exception = Proc.new do |exception|
+        logger.error "#{source.name}: connection failed: #{e.message}, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
       end
+      Retryable.retryable(tries: 4, 
+                          sleep: lambda { |n| 4**n },
+                          exception_cb: retry_exception,
+                          on: [HTTPClient::TimeoutError, HTTPClient::BadResponseError]) do
 
-      # Make sure the request has the latest sequence
-      query = {:since => seq, :feed => 'continuous', :heartbeat => COUCHDB_HEARTBEAT * 1000,
-               :include_docs => true}
+        logger.info "#{source.name}: listening to changes feed from seq: #{seq}"
 
-      while true do
-        # Perform the actual request for chunked content
-        @http.get_content(url, query) do |chunk|
-          # logger.debug chunk.strip
-          @parser << chunk
+        url = File.join(source.root, '_changes')
+        uri = URI.parse(url)
+        # Authenticate?
+        if uri.user.present? && uri.password.present?
+          @http.set_auth(source.root, uri.user, uri.password)
         end
-        logger.error "#{source.name}: connection ended, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
-        sleep RECONNECT_TIMEOUT
-      end
 
-    rescue HTTPClient::TimeoutError, HTTPClient::BadResponseError => e
-      logger.error "#{source.name}: connection failed: #{e.message}, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
-      sleep RECONNECT_TIMEOUT
-      retry
+        # Make sure the request has the latest sequence
+        query = {:since => seq, :feed => 'continuous', :heartbeat => COUCHDB_HEARTBEAT * 1000,
+                 :include_docs => true}
+
+        while true do
+          # Perform the actual request for chunked content
+          @http.get_content(url, query) do |chunk|
+            # logger.debug chunk.strip
+            @parser << chunk
+          end
+          logger.error "#{source.name}: connection ended, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
+          sleep RECONNECT_TIMEOUT
+        end
+      end
     end
 
     def prepare_parser
