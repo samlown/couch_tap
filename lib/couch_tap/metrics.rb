@@ -10,8 +10,8 @@ module CouchTap
       @tags = tags
     end
 
-    def increment(key, tags = {})
-      @statsd.increment(prefix_key(key), tags: build_tags(tags))
+    def increment(key, delta = 1, tags = {})
+      @statsd.increment(prefix_key(key), by: delta, tags: build_tags(tags))
     end
 
     def histogram(key, value, tags = {})
