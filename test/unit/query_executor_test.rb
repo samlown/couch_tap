@@ -2,7 +2,6 @@
 require 'test_helper'
 
 class QueryExecutorTest < Test::Unit::TestCase
-  DUMMY_DATE = Time.new(2008,6,21, 13,30,0).freeze
 
   def setup
     @queue = CouchTap::OperationsQueue.new
@@ -37,18 +36,19 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_insert_runs_the_query_if_full
+    dummy_date = Time.new(2008,6,21, 13,30,0)
     executor = config_executor 2
 
     @queue.add_operation(begin_transaction_operation)
     @queue.add_operation(item_to_insert(true, 123))
-    @queue.add_operation(item_to_insert(true, 987, (DUMMY_DATE - 1000).rfc2822 ))
+    @queue.add_operation(item_to_insert(true, 987, (dummy_date - 1000).rfc2822 ))
     @queue.add_operation(end_transaction_operation(1))
     @queue.close
 
     executor.start
     assert_equal 2, executor.database[:items].count
     assert_equal 1, executor.database[:couch_sequence].where(name: 'items').first[:seq]
-    assert_equal DUMMY_DATE, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
+    assert_equal dummy_date, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
   end
 
   def test_insert_fails_rollsback_the_transaction
@@ -127,6 +127,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_create_and_delete_same_row
+    dummy_date = Time.new(2008,6,21, 13,30,0)
     executor = config_executor 2
 
     @queue.add_operation(begin_transaction_operation)
@@ -139,7 +140,7 @@ class QueryExecutorTest < Test::Unit::TestCase
 
     assert_equal 0, executor.database[:items].where(item_id: 123).count
     assert_equal 1, executor.database[:couch_sequence].where(name: 'items').first[:seq]
-    assert_equal DUMMY_DATE, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
+    assert_equal dummy_date, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
   end
 
   def test_includes_whole_row_even_if_batch_gets_oversized
@@ -345,7 +346,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     connection
   end
 
-  def item_to_insert(top_level, id, updated_at = DUMMY_DATE.rfc2822)
+  def item_to_insert(top_level, id, updated_at = "Sat, 21 Jun 2008 13:30:00 +0200")
     CouchTap::Operations::InsertOperation.new(:items, top_level, id, item_id: id,
                                               name: 'dummy', count: rand(), updated_at: updated_at)
   end
