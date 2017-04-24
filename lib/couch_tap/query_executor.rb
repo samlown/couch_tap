@@ -112,7 +112,7 @@ module CouchTap
           end
 
           logger.debug "Changes applied, updating sequence number now to #{@seq}"
-          @metrics.gauge('delay', (Time.now - (@buffer.newest_updated_at || Time.now)).round)
+          @metrics.gauge('delay', (Time.now - @buffer.newest_updated_at).round) if @buffer.newest_updated_at
           update_sequence(seq, @buffer.newest_updated_at)
           logger.debug "#{@name}'s new sequence: #{seq}"
         end
