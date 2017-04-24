@@ -15,7 +15,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
 
     sales = @database[:sales].to_a
     assert_equal 1, sales.count
-    assert_equal({ sale_id: "10", code: "Code 1", amount: 600 }, sales.first)
+    assert_equal({ sale_id: "10", code: "Code 1", amount: 600, updated_at: nil }, sales.first)
     assert_sequence changes.seq, 123
   end
 
@@ -40,22 +40,25 @@ class FunctionalChangesTest < Test::Unit::TestCase
 
     sales = @database[:sales].to_a
     assert_equal 3, sales.count
-    assert_includes sales, sale_id: "10", code: "Code 1", amount: 600
-    assert_includes sales, sale_id: "11", code: "Code 2", amount: 1000
-    assert_includes sales, sale_id: "12", code: "Code 3", amount: 325
+    assert_includes sales, sale_id: "10", code: "Code 1", amount: 600, updated_at: nil
+    assert_includes sales, sale_id: "11", code: "Code 2", amount: 1000, updated_at: nil
+    assert_includes sales, sale_id: "12", code: "Code 3", amount: 325, updated_at: nil
     assert_sequence changes.seq, 125
   end
 
   def test_insert_multiple_sales_in_same_batch
+    Timecop.freeze(Time.now)
     docs = [
       { "id" => 1, "seq" => 123, "doc" => {
-        "_id" => "10", "type" => "Sale", "code" => "Code 1", "amount" => 600
+        "_id" => "10", "type" => "Sale", "code" => "Code 1", "amount" => 600,
+        "updated_at" => (Time.now - 120).round.rfc2822
       }},
       { "id" => 2, "seq" => 124, "doc" => {
         "_id" => "11", "type" => "Sale", "code" => "Code 2", "amount" => 1000
       }},
       { "id" => 3, "seq" => 125, "doc" => {
-        "_id" => "12", "type" => "Sale", "code" => "Code 3", "amount" => 325
+        "_id" => "12", "type" => "Sale", "code" => "Code 3", "amount" => 325,
+        "updated_at" => Time.now.round.rfc2822
       }}
     ]
 
@@ -67,10 +70,12 @@ class FunctionalChangesTest < Test::Unit::TestCase
 
     sales = @database[:sales].to_a
     assert_equal 3, sales.count
-    assert_includes sales, sale_id: "10", code: "Code 1", amount: 600
-    assert_includes sales, sale_id: "11", code: "Code 2", amount: 1000
-    assert_includes sales, sale_id: "12", code: "Code 3", amount: 325
+    assert_includes sales, sale_id: "10", code: "Code 1", amount: 600, updated_at: (Time.now - 120).round
+    assert_includes sales, sale_id: "11", code: "Code 2", amount: 1000, updated_at: nil
+    assert_includes sales, sale_id: "12", code: "Code 3", amount: 325, updated_at:  Time.now.round
     assert_sequence changes.seq, 125
+    assert_equal @database[:couch_sequence].where(name: TEST_DB_NAME).to_a.first[:last_transaction_at], Time.now.round
+    Timecop.return
   end
 
   def test_insert_and_update_sale_in_different_batch
@@ -91,7 +96,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
 
     sales = @database[:sales].to_a
     assert_equal 1, sales.count
-    assert_equal({ sale_id: "10", code: "Code 2", amount: 800 }, sales.first)
+    assert_equal({ sale_id: "10", code: "Code 2", amount: 800, updated_at: nil }, sales.first)
     assert_sequence changes.seq, 124
   end
 
@@ -113,7 +118,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
 
     sales = @database[:sales].to_a
     assert_equal 1, sales.count
-    assert_equal({ sale_id: "10", code: "Code 2", amount: 800 }, sales.first)
+    assert_equal({ sale_id: "10", code: "Code 2", amount: 800, updated_at: nil }, sales.first)
     assert_sequence changes.seq, 124
  end
 
@@ -132,7 +137,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
 
     sales = @database[:sales].to_a
     assert_equal 1, sales.count
-    assert_equal({ sale_id: "50", code: "Code 1", amount: 600 }, sales.first)
+    assert_equal({ sale_id: "50", code: "Code 1", amount: 600, updated_at: nil }, sales.first)
 
     entries = @database[:sale_entries].to_a
     assert_equal 2, entries.count
@@ -160,7 +165,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
 
     sales = @database[:sales].to_a
     assert_equal 1, sales.count
-    assert_equal({ sale_id: "50", code: "Code 2", amount: 900 }, sales.first)
+    assert_equal({ sale_id: "50", code: "Code 2", amount: 900, updated_at: nil }, sales.first)
 
     entries = @database[:sale_entries].to_a
     assert_equal 2, entries.count
@@ -188,7 +193,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
 
     sales = @database[:sales].to_a
     assert_equal 1, sales.count
-    assert_equal({ sale_id: "50", code: "Code 2", amount: 900 }, sales.first)
+    assert_equal({ sale_id: "50", code: "Code 2", amount: 900, updated_at: nil }, sales.first)
 
     entries = @database[:sale_entries].to_a
     assert_equal 2, entries.count
@@ -198,16 +203,16 @@ class FunctionalChangesTest < Test::Unit::TestCase
     assert_sequence changes.seq, 112
   end
 
-  def insert_different_document_types
+  def test_insert_different_document_types
     docs = [
       { "id" => 1, "seq" => 111, "doc" => {
         "_id" => "50", "type" => "Sale", "code" => "Code 1", "amount" => 600, "entries" => [{ "price" => 500 }, { "price" => 100 }]
       }},
-      { "id" => 2, "seq" => 112, "doc" => { "_id" => "3000", "key" => "click", "value" => "yes" }},
+      { "id" => 2, "seq" => 112, "doc" => { "_id" => "3000", "type" => 'AnalyticEvent', "key" => "click", "value" => "yes" }},
       { "id" => 3, "seq" => 113, "doc" => {
         "_id" => "51", "type" => "Sale", "code" => "Code 2", "amount" => 900, "entries" => [{ "price" => 300 }, { "price" => 600 }]
       }},
-      { "id" => 4, "seq" => 114, "doc" => { "_id" => "3001", "key" => "double-click", "value" => "too much" }}
+      { "id" => 4, "seq" => 114,  "doc" => { "_id" => "3001", "type" => 'AnalyticEvent', "key" => "double-click", "value" => "too much" }}
     ]
 
     changes = config_changes batch_size: 7
@@ -218,8 +223,8 @@ class FunctionalChangesTest < Test::Unit::TestCase
 
     sales = @database[:sales].to_a
     assert_equal 2, sales.count
-    assert_includes sales, sale_id: "50", code: "Code 1", amount: 600
-    assert_includes sales, sale_id: "51", code: "Code 2", amount: 900
+    assert_includes sales, sale_id: "50", code: "Code 1", amount: 600, updated_at: nil
+    assert_includes sales, sale_id: "51", code: "Code 2", amount: 900, updated_at: nil
 
     entries = @database[:sale_entries].to_a
     assert_equal 4, entries.count
@@ -285,6 +290,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
       String :sale_id
       String :code
       Float :amount
+      Time :updated_at
     end
 
     connection.create_table :sale_entries do

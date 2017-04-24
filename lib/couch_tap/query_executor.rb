@@ -72,6 +72,7 @@ module CouchTap
       if @buffer.size == 0
         logger.info "Skipping empty batch for #{@name}"
         @metrics.gauge('delay', 0)
+        update_sequence(seq, Time.now)
         return
       end
       if @buffer.size < @batch_size
@@ -144,7 +145,7 @@ module CouchTap
     end
 
     def update_sequence(seq, last_transaction_at)
-      logger.debug "Updating sequence number for #{@name} to #{seq}"
+      logger.debug "Updating sequence number for #{@name} to #{seq} and timestamp #{last_transaction_at}"
       database[:couch_sequence].where(:name => @name).update(:seq => seq, :last_transaction_at => last_transaction_at)
     end
 

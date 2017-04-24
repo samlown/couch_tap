@@ -12,8 +12,8 @@ module CouchTap
 
     def insert(operation)
       get_or_create(operation.table, operation.top_level).insert(operation.id, operation.attributes)
-      if operation.attributes['updated_at']
-        t = Time.parse(operation.attributes['updated_at'])
+      if operation.attributes[:updated_at]
+        t = Time.parse(operation.attributes[:updated_at])
         @newest_updated_at = t if @newest_updated_at.nil? || @newest_updated_at < t
       end
       @size += 1

@@ -278,14 +278,19 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_empty_batches_are_skipped
+    Timecop.freeze
     executor = config_executor 1
 
     @queue.add_operation(CouchTap::Operations::TimerFiredSignal.new)
     @queue.close
 
+
     executor.database.expects(:transaction).never
 
     executor.start
+
+    assert_equal Time.now, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
+    Timecop.return
   end
 
   private
