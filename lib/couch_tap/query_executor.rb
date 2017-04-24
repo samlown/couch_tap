@@ -108,6 +108,7 @@ module CouchTap
               @metrics.gauge('insert.latency.unit', delta/values.size.to_f, table_name: entity.name)
               batch_summary[entity.name] << "Inserted #{values.size} in #{delta} ms."
               logger.debug "#{entity.name}:  #{values.size} rows inserted in #{delta} ms."
+              @metrics.increment('insertions', values.size, { table: entity.name } )
             end
           end
 
