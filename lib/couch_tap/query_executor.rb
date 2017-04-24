@@ -71,6 +71,7 @@ module CouchTap
     def run_transaction(seq)
       if @buffer.size == 0
         logger.info "Skipping empty batch for #{@name}"
+        @metrics.gauge('delay', 0)
         return
       end
       if @buffer.size < @batch_size
@@ -110,7 +111,8 @@ module CouchTap
           end
 
           logger.debug "Changes applied, updating sequence number now to #{@seq}"
-          update_sequence(seq)
+          @metrics.gauge('delay', (Time.now - (@buffer.newest_updated_at || Time.now)).round)
+          update_sequence(seq, @buffer.newest_updated_at)
           logger.debug "#{@name}'s new sequence: #{seq}"
         end
       end
@@ -141,9 +143,9 @@ module CouchTap
       row ? row[:seq] : 0
     end
 
-    def update_sequence(seq)
+    def update_sequence(seq, last_transaction_at)
       logger.debug "Updating sequence number for #{@name} to #{seq}"
-      database[:couch_sequence].where(:name => @name).update(:seq => seq)
+      database[:couch_sequence].where(:name => @name).update(:seq => seq, :last_transaction_at => last_transaction_at)
     end
 
     def create_sequence_table(name)
@@ -153,6 +155,7 @@ module CouchTap
         Bignum :seq, :default => 0
         DateTime :created_at
         DateTime :updated_at
+        DateTime :last_transaction_at
       end
       # Add first row
       database[:couch_sequence].insert(:name => name)
