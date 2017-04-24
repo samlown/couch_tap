@@ -101,6 +101,14 @@ class QueryBufferTest < Test::Unit::TestCase
     assert_equal 2, buffer.delete(item_to_delete(987))
   end
 
+   def test_clear_deletes_newest_updated_at
+    buffer = CouchTap::QueryBuffer.new
+    assert_equal 1, buffer.insert(item_to_insert(true, 123, { updated_at: Time.now.rfc2822 }))
+    assert_equal 2, buffer.delete(item_to_delete(987))
+    buffer.clear
+    assert_equal nil, buffer.newest_updated_at
+  end
+
   def test_clear_resets_the_size
     buffer = CouchTap::QueryBuffer.new
 
@@ -136,6 +144,23 @@ class QueryBufferTest < Test::Unit::TestCase
     entity_names = []
     buffer.each { |e| entity_names << e.name }
     assert_equal %i(item another), entity_names
+  end
+
+  def test_newest_updated_at
+    dummy_date = Time.new(2008,6,21, 13,30,0)
+    buffer = CouchTap::QueryBuffer.new
+
+    buffer.insert(item_to_insert(true, 123, { updated_at: dummy_date.rfc2822 }))
+    assert_equal buffer.newest_updated_at, dummy_date
+
+    buffer.insert(item_to_insert(true, 456))
+    assert_equal buffer.newest_updated_at, dummy_date
+
+    buffer.insert(item_to_insert(true, 123, { updated_at: (dummy_date - 10).rfc2822 }))
+    assert_equal buffer.newest_updated_at, dummy_date
+
+    buffer.insert(item_to_insert(true, 123, { updated_at: (dummy_date + 10).rfc2822 }))
+    assert_equal buffer.newest_updated_at, (dummy_date + 10)
   end
 
   private

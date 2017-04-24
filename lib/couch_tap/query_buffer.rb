@@ -27,6 +27,7 @@ module CouchTap
     def clear
       @size = 0
       @buffer = {}
+      @newest_updated_at = nil
     end
 
     def each(&block)

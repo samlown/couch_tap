@@ -2,6 +2,7 @@
 require 'test_helper'
 
 class QueryExecutorTest < Test::Unit::TestCase
+  DUMMY_DATE = Time.new(2008,6,21, 13,30,0)
 
   def setup
     @queue = CouchTap::OperationsQueue.new
@@ -48,6 +49,7 @@ class QueryExecutorTest < Test::Unit::TestCase
 
     assert_equal 0, executor.database[:items].count
     assert_equal 0, executor.database[:couch_sequence].where(name: 'items').first[:seq]
+    assert_equal nil, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
   end
 
   def test_delete_saves_the_data_if_not_full
@@ -120,6 +122,7 @@ class QueryExecutorTest < Test::Unit::TestCase
 
     assert_equal 0, executor.database[:items].where(item_id: 123).count
     assert_equal 1, executor.database[:couch_sequence].where(name: 'items').first[:seq]
+    assert_equal DUMMY_DATE, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
   end
 
   def test_includes_whole_row_even_if_batch_gets_oversized
@@ -309,13 +312,15 @@ class QueryExecutorTest < Test::Unit::TestCase
       Integer :count
       Float :price
       Time :created_at
+      Time :updated_at
       index :item_id, :unique => true
     end
     connection
   end
 
   def item_to_insert(top_level, id)
-    CouchTap::Operations::InsertOperation.new(:items, top_level, id, item_id: id, name: 'dummy', count: rand())
+    CouchTap::Operations::InsertOperation.new(:items, top_level, id, item_id: id,
+                                              name: 'dummy', count: rand(), updated_at: DUMMY_DATE.rfc2822)
   end
 
   def item_to_delete(id)
