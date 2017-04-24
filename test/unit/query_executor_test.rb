@@ -2,7 +2,7 @@
 require 'test_helper'
 
 class QueryExecutorTest < Test::Unit::TestCase
-  DUMMY_DATE = Time.new(2008,6,21, 13,30,0)
+  DUMMY_DATE = Time.new(2008,6,21, 13,30,0).freeze
 
   def setup
     @queue = CouchTap::OperationsQueue.new
@@ -21,17 +21,34 @@ class QueryExecutorTest < Test::Unit::TestCase
     assert_equal 0, executor.database[:items].count
   end
 
-  def test_insert_runs_the_query_if_full
+  def test_insert_docs_without_date
     executor = config_executor 2
 
     @queue.add_operation(begin_transaction_operation)
-    @queue.add_operation(item_to_insert(true, 123))
-    @queue.add_operation(item_to_insert(true, 987))
+    @queue.add_operation(item_to_insert(true, 123, nil))
+    @queue.add_operation(item_to_insert(true, 987, nil))
     @queue.add_operation(end_transaction_operation(1))
     @queue.close
 
     executor.start
     assert_equal 2, executor.database[:items].count
+    assert_equal 1, executor.database[:couch_sequence].where(name: 'items').first[:seq]
+    assert_equal nil, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
+  end
+
+  def test_insert_runs_the_query_if_full
+    executor = config_executor 2
+
+    @queue.add_operation(begin_transaction_operation)
+    @queue.add_operation(item_to_insert(true, 123))
+    @queue.add_operation(item_to_insert(true, 987, (DUMMY_DATE - 1000).rfc2822 ))
+    @queue.add_operation(end_transaction_operation(1))
+    @queue.close
+
+    executor.start
+    assert_equal 2, executor.database[:items].count
+    assert_equal 1, executor.database[:couch_sequence].where(name: 'items').first[:seq]
+    assert_equal DUMMY_DATE, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
   end
 
   def test_insert_fails_rollsback_the_transaction
@@ -318,9 +335,9 @@ class QueryExecutorTest < Test::Unit::TestCase
     connection
   end
 
-  def item_to_insert(top_level, id)
+  def item_to_insert(top_level, id, updated_at = DUMMY_DATE.rfc2822)
     CouchTap::Operations::InsertOperation.new(:items, top_level, id, item_id: id,
-                                              name: 'dummy', count: rand(), updated_at: DUMMY_DATE.rfc2822)
+                                              name: 'dummy', count: rand(), updated_at: updated_at)
   end
 
   def item_to_delete(id)

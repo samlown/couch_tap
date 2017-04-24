@@ -51,14 +51,14 @@ class FunctionalChangesTest < Test::Unit::TestCase
     docs = [
       { "id" => 1, "seq" => 123, "doc" => {
         "_id" => "10", "type" => "Sale", "code" => "Code 1", "amount" => 600,
-        "updated_at" => (example_time - 120).round.rfc2822
+        "updated_at" => (example_time - 120).rfc2822
       }},
       { "id" => 2, "seq" => 124, "doc" => {
         "_id" => "11", "type" => "Sale", "code" => "Code 2", "amount" => 1000
       }},
       { "id" => 3, "seq" => 125, "doc" => {
         "_id" => "12", "type" => "Sale", "code" => "Code 3", "amount" => 325,
-        "updated_at" => example_time.round.rfc2822
+        "updated_at" => example_time.rfc2822
       }}
     ]
 
@@ -70,11 +70,11 @@ class FunctionalChangesTest < Test::Unit::TestCase
 
     sales = @database[:sales].to_a
     assert_equal 3, sales.count
-    assert_includes sales, sale_id: "10", code: "Code 1", amount: 600, updated_at: (example_time - 120).round
+    assert_includes sales, sale_id: "10", code: "Code 1", amount: 600, updated_at: (example_time - 120)
     assert_includes sales, sale_id: "11", code: "Code 2", amount: 1000, updated_at: nil
-    assert_includes sales, sale_id: "12", code: "Code 3", amount: 325, updated_at:  example_time.round
+    assert_includes sales, sale_id: "12", code: "Code 3", amount: 325, updated_at:  example_time
     assert_sequence changes.seq, 125
-    assert_equal @database[:couch_sequence].where(name: TEST_DB_NAME).to_a.first[:last_transaction_at], example_time.round
+    assert_equal @database[:couch_sequence].where(name: TEST_DB_NAME).to_a.first[:last_transaction_at], example_time
   end
 
   def test_insert_and_update_sale_in_different_batch

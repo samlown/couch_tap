@@ -103,7 +103,9 @@ class QueryBufferTest < Test::Unit::TestCase
 
    def test_clear_deletes_newest_updated_at
     buffer = CouchTap::QueryBuffer.new
-    assert_equal 1, buffer.insert(item_to_insert(true, 123, { updated_at: Time.now.rfc2822 }))
+    dummy_date = Time.now.round
+    assert_equal 1, buffer.insert(item_to_insert(true, 123, { updated_at: dummy_date.rfc2822 }))
+    assert_equal dummy_date, buffer.newest_updated_at
     assert_equal 2, buffer.delete(item_to_delete(987))
     buffer.clear
     assert_equal nil, buffer.newest_updated_at
@@ -151,16 +153,16 @@ class QueryBufferTest < Test::Unit::TestCase
     buffer = CouchTap::QueryBuffer.new
 
     buffer.insert(item_to_insert(true, 123, { updated_at: dummy_date.rfc2822 }))
-    assert_equal buffer.newest_updated_at, dummy_date
+    assert_equal dummy_date, buffer.newest_updated_at
 
     buffer.insert(item_to_insert(true, 456))
-    assert_equal buffer.newest_updated_at, dummy_date
+    assert_equal dummy_date, buffer.newest_updated_at
 
     buffer.insert(item_to_insert(true, 123, { updated_at: (dummy_date - 10).rfc2822 }))
-    assert_equal buffer.newest_updated_at, dummy_date
+    assert_equal dummy_date, buffer.newest_updated_at
 
     buffer.insert(item_to_insert(true, 123, { updated_at: (dummy_date + 10).rfc2822 }))
-    assert_equal buffer.newest_updated_at, (dummy_date + 10)
+    assert_equal (dummy_date + 10), buffer.newest_updated_at
   end
 
   private
