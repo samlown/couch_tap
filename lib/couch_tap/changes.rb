@@ -6,6 +6,10 @@ module CouchTap
     INACTIVITY_TIMEOUT = 70
     RECONNECT_TIMEOUT  = 15
 
+    IDLE = 0
+    RUNNING = 1
+    STOPPED = 2
+
     attr_reader :source, :schemas, :handlers, :query_executor
 
     # Start a new Changes instance by connecting to the provided
@@ -22,6 +26,8 @@ module CouchTap
       @timeout  = opts.fetch(:timeout, 60)
 
       logger.info "Connected to CouchDB: #{@source.info['db_name']}"
+
+      @status = IDLE
 
       # Prepare the definitions
       instance_eval(&block)
@@ -60,6 +66,12 @@ module CouchTap
       @query_executor.seq
     end
 
+    def stop
+      @status = STOPPED
+      stop_timer
+      stop_consumer
+    end
+
     def stop_consumer
       @query_executor.stop
       @consumer.join
@@ -72,10 +84,11 @@ module CouchTap
     protected
 
     def perform_request
+      @status = RUNNING
       retry_exception = Proc.new do |exception|
         logger.error "#{source.name}: connection failed: #{e.message}, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
       end
-      Retryable.retryable(tries: 4, 
+      Retryable.retryable(tries: 4,
                           sleep: lambda { |n| 4**n },
                           exception_cb: retry_exception,
                           on: [HTTPClient::TimeoutError, HTTPClient::BadResponseError]) do
@@ -89,15 +102,16 @@ module CouchTap
           @http.set_auth(source.root, uri.user, uri.password)
         end
 
-        # Make sure the request has the latest sequence
-        query = {:since => seq, :feed => 'continuous', :heartbeat => COUCHDB_HEARTBEAT * 1000,
-                 :include_docs => true}
+        while @status == RUNNING do
+          # Make sure the request has the latest sequence
+          query = {:since => seq, :feed => 'continuous', :heartbeat => COUCHDB_HEARTBEAT * 1000,
+                   :include_docs => true}
 
-        while true do
           # Perform the actual request for chunked content
           @http.get_content(url, query) do |chunk|
             # logger.debug chunk.strip
             @parser << chunk
+            break unless @status == RUNNING
           end
           logger.error "#{source.name}: connection ended, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
           sleep RECONNECT_TIMEOUT
