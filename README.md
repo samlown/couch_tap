@@ -216,4 +216,5 @@ CouchTap code is instrumented to report basic monitoring metrics to DataDog via 
 * `insert.latency.unit`: Avg time taken to insert a single record within a whole transaction. Tagged by target database table name.
 * `transactions.time`: Latency histogram of the whole transaction time.
 * `insertions`: Rate of records written to the database per time unit. Tagged by target database table name.
+* `delay`: How desynchronised the database is in seconds. It is based on the `updated_at` value found on inserted records.
 

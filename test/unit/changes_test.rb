@@ -67,8 +67,6 @@ class ChangesTest < Test::Unit::TestCase
     assert_equal @changes.schema(:items), schema
   end
 
-# TODO test the perform_request method too!!
-
   def test_timer_signal
     @changes.instance_variable_set(:@timeout, 0.1)
     @changes.send(:start_timer)
@@ -79,11 +77,46 @@ class ChangesTest < Test::Unit::TestCase
     assert @queue.pop.is_a? CouchTap::Operations::TimerFiredSignal
   end
 
+  def test_sequence_in_url_is_updated_on_retries
+    @changes.class.send(:remove_const, "RECONNECT_TIMEOUT")
+    @changes.class.const_set("RECONNECT_TIMEOUT", 0.1)
+
+    doc = {'_id' => '1234', 'type' => 'Bar', 'special' => true, 'name' => 'Some Document'}
+    row = {'seq' => 3, 'id' => '1234', 'doc' => doc}
+
+    initial_req = stub_request(:get, "#{TEST_DB_ROOT}/_changes").
+      with(query: { feed: 'continuous', heartbeat: 30000, include_docs: true, since: 0 }).
+      to_return(status: 200, body: row.to_json )
+
+    updated_req = stub_request(:get, "#{TEST_DB_ROOT}/_changes").
+      with(query: { feed: 'continuous', heartbeat: 30000, include_docs: true, since: row['seq'] }).
+      to_return(status: 200, body: { "last_seq" => 50_000 }.to_json )
+
+    @changes.send(:start_timer)
+    @changes.send(:prepare_parser)
+    @changes.send(:start_consumer)
+
+    t = Thread.new do
+      sleep 0.2
+      @changes.stop
+    end
+
+    @changes.send(:perform_request)
+    t.join
+
+    assert_requested initial_req
+    assert_requested updated_req
+  end
+
   protected
 
   def build_sample_config
-    @changes = CouchTap::Changes.new couch_db: TEST_DB_ROOT, timeout: 60 do
-      database db: "sqlite:/"
+    stub_request(:get, TEST_DB_ROOT).
+      with(headers: { 'Accept'=>'application/json', 'Content-Type'=>'application/json' }).
+      to_return(status: 200, body: { db_name: TEST_DB_NAME }.to_json, headers: {})
+
+    @changes = CouchTap::Changes.new couch_db: TEST_DB_ROOT, timeout: 0.1 do
+      database db: "sqlite:/", batch_size: 1
       document :type => 'Foo' do
         table :foo do
         end
@@ -106,10 +139,12 @@ class ChangesTest < Test::Unit::TestCase
     end
 
     connection.create_table :bar do
+      String :bar_id
       String :name
     end
 
     connection.create_table :special_bar do
+      String :special_bar_id
       String :name
       Boolean :special
     end
