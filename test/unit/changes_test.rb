@@ -92,6 +92,7 @@ class ChangesTest < Test::Unit::TestCase
       with(query: { feed: 'continuous', heartbeat: 30000, include_docs: true, since: row['seq'] }).
       to_return(status: 200, body: { "last_seq" => 50_000 }.to_json )
 
+    @changes.send(:start_timer)
     @changes.send(:prepare_parser)
     @changes.send(:start_consumer)
 
@@ -114,7 +115,7 @@ class ChangesTest < Test::Unit::TestCase
       with(headers: { 'Accept'=>'application/json', 'Content-Type'=>'application/json' }).
       to_return(status: 200, body: { db_name: TEST_DB_NAME }.to_json, headers: {})
 
-    @changes = CouchTap::Changes.new couch_db: TEST_DB_ROOT, timeout: 60 do
+    @changes = CouchTap::Changes.new couch_db: TEST_DB_ROOT, timeout: 0.1 do
       database db: "sqlite:/", batch_size: 1
       document :type => 'Foo' do
         table :foo do

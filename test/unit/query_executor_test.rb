@@ -7,17 +7,22 @@ class QueryExecutorTest < Test::Unit::TestCase
     @queue = CouchTap::OperationsQueue.new
   end
 
-  def test_insert_saves_the_data_if_not_full
+  def test_insert_buffers_the_data_if_not_full
     executor = config_executor 10
 
     @queue.add_operation(begin_transaction_operation)
     @queue.add_operation(item_to_insert(true, 123))
     @queue.add_operation(end_transaction_operation(1))
-    @queue.close
 
-    executor.start
+    th = Thread.new do
+      executor.start
+    end
+    th.abort_on_exception = true
 
+    sleep 0.1
     assert_equal 0, executor.database[:items].count
+    @queue.close
+    th.join
   end
 
   def test_insert_docs_without_date
@@ -69,7 +74,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     assert_equal nil, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
   end
 
-  def test_delete_saves_the_data_if_not_full
+  def test_delete_buffers_the_data_if_not_full
     executor = config_executor 10
 
     id = 123
@@ -80,11 +85,16 @@ class QueryExecutorTest < Test::Unit::TestCase
     @queue.add_operation(begin_transaction_operation)
     @queue.add_operation(item_to_delete(id))
     @queue.add_operation(end_transaction_operation(1))
-    @queue.close
 
-    executor.start
+    th = Thread.new do
+      executor.start
+    end
+    th.abort_on_exception = true
 
+    sleep 0.1
     assert_equal 1, executor.database[:items].count
+    @queue.close
+    th.join
   end
 
   def test_delete_runs_the_query_if_full
@@ -317,11 +327,26 @@ class QueryExecutorTest < Test::Unit::TestCase
     @queue.add_operation(CouchTap::Operations::TimerFiredSignal.new)
     @queue.close
 
-
     executor.database.expects(:transaction).never
 
     executor.start
     Timecop.return
+  end
+
+  def test_close_runs_transaction_if_anything_buffered
+    executor = config_executor 200
+
+    @queue.add_operation(begin_transaction_operation)
+    @queue.add_operation(item_to_insert(true, 123, nil))
+    @queue.add_operation(item_to_insert(true, 987, nil))
+    @queue.add_operation(end_transaction_operation(1))
+    @queue.close
+
+    executor.start
+
+    assert_equal 2, executor.database[:items].count
+    assert_equal 1, executor.database[:couch_sequence].where(name: 'items').first[:seq]
+    assert_equal nil, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
   end
 
   private

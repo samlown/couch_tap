@@ -22,7 +22,7 @@ module CouchTap
         begin
           sleep @timeout
           if @status == RUNNING_STATUS
-            logger.debug "Timer firing #{@callback_object.class}##{@callback_method}"
+            logger.debug "Timer firing!!"
             @block.call
           end
         end while @status == RUNNING_STATUS
