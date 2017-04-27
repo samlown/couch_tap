@@ -29,39 +29,12 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
 
   def test_insert_update_delete
     CouchTap.module_eval(config)
-
     th = Thread.new { CouchTap.start }
     th.abort_on_exception = true
 
-    Timecop.freeze(Time.now.round - 120)
-      TEST_DB.save_doc(DUMMY_SALE)
-      sleep 0.1
-      assert_equal 1, @db[:sales].count
-      assert_equal 1, @db[:couch_sequence].where(name: TEST_DB_NAME).first[:seq]
-      sale = @db[:sales].first
-      assert_equal_sale(DUMMY_SALE, sale)
-    Timecop.return
-
-    Timecop.freeze(Time.now)
-      docu = TEST_DB.update_doc sale[:sale_id] do |doc|
-        doc[:amount] = DUMMY_UPDATE_FIELDS[:amount]
-        doc[:entries] = DUMMY_UPDATE_FIELDS[:entries]
-      end
-      sleep 0.1
-      assert_equal 1, @db[:sales].count
-      assert_equal 2, @db[:couch_sequence].where(name: TEST_DB_NAME).first[:seq]
-      expected_updated_sale = DUMMY_SALE.merge(DUMMY_UPDATE_FIELDS)
-      updated_sale = @db[:sales].first
-      assert_equal sale[:sale_id], updated_sale[:sale_id]
-      assert_equal_sale expected_updated_sale, updated_sale
-    Timecop.return
-
-    TEST_DB.delete_doc(docu)
-
-    sleep 1 # Sleep to allow the timer to run
-
-    assert_equal 0, @db[:sales].count
-    assert_equal 3, @db[:couch_sequence].where(name: TEST_DB_NAME).first[:seq]
+    sale_id = insert_sale_with_entries
+    sale = update_sale_with_entries(sale_id)
+    delete_sale_and_insert_analytic_event(sale)
 
     CouchTap.stop
     TEST_DB.save_doc(dummy: true) # This is a HACK to make the client disconnect from the feed.
@@ -69,6 +42,47 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
   end
 
   private
+
+  def delete_sale_and_insert_analytic_event(sale)
+    TEST_DB.delete_doc(sale)
+    TEST_DB.save_doc(DUMMY_ANALYTIC_EVENT)
+
+    sleep 1 # Sleep to allow the timer to run
+
+    assert_equal 0, @db[:sales].count
+    assert_equal 1, @db[:analytic_events].count
+    assert_equal 4, @db[:couch_sequence].where(name: TEST_DB_NAME).first[:seq]
+  end
+
+  def insert_sale_with_entries
+    Timecop.freeze(Time.now.round - 120)
+    TEST_DB.save_doc(DUMMY_SALE)
+    sleep 0.1
+    assert_equal 1, @db[:sales].count
+    assert_equal 1, @db[:couch_sequence].where(name: TEST_DB_NAME).first[:seq]
+    sale = @db[:sales].first
+    assert_equal_sale(DUMMY_SALE, sale)
+    Timecop.return
+    sale[:sale_id]
+  end
+
+  def update_sale_with_entries(sale_id)
+    Timecop.freeze(Time.now)
+    docu = TEST_DB.update_doc sale_id do |doc|
+      doc[:amount] = DUMMY_UPDATE_FIELDS[:amount]
+      doc[:entries] = DUMMY_UPDATE_FIELDS[:entries]
+    end
+    sleep 0.1
+    assert_equal 1, @db[:sales].count
+    assert_equal 2, @db[:couch_sequence].where(name: TEST_DB_NAME).first[:seq]
+    expected_updated_sale = DUMMY_SALE.merge(DUMMY_UPDATE_FIELDS)
+    updated_sale = @db[:sales].first
+    assert_equal sale_id, updated_sale[:sale_id]
+    assert_equal_sale expected_updated_sale, updated_sale
+    Timecop.return
+    docu
+  end
+
 
   def assert_equal_sale(expected_sale, db_sale)
     assert_equal expected_sale[:code], db_sale[:code]
