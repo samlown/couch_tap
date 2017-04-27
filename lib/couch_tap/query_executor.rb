@@ -49,6 +49,7 @@ module CouchTap
           end
         when Operations::CloseQueueOperation
           logger.info "Queue closed, finishing..."
+          run_transaction(@seq) if @buffer.size > 0
           break
         when Operations::TimerFiredSignal
           if @transaction_open

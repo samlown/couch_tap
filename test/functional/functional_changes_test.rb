@@ -2,6 +2,12 @@ require 'test_helper'
 
 class FunctionalChangesTest < Test::Unit::TestCase
 
+  def setup
+    stub_request(:get, TEST_DB_ROOT).
+      with(headers: { 'Accept'=>'application/json', 'Content-Type'=>'application/json' }).
+      to_return(status: 200, body: { db_name: TEST_DB_NAME }.to_json , headers: {})
+  end
+
   def test_insert_sales
     doc = { "id" => 1, "seq" => 123, "doc" => {
       "_id" => "10", "type" => "Sale", "code" => "Code 1", "amount" => 600
@@ -119,7 +125,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
     assert_equal 1, sales.count
     assert_equal({ sale_id: "10", code: "Code 2", amount: 800, updated_at: nil }, sales.first)
     assert_sequence changes.seq, 124
- end
+  end
 
   def test_insert_sales_and_nested_entries
     doc = { "id" => 1, "seq" => 111, "doc" => {
