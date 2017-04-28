@@ -1,3 +1,5 @@
+require 'simplecov'            # These two lines must go first
+SimpleCov.start
 
 $LOAD_PATH.unshift(File.dirname(__FILE__))
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), "..", "lib"))

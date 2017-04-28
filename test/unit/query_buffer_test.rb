@@ -165,6 +165,31 @@ class QueryBufferTest < Test::Unit::TestCase
     assert_equal (dummy_date + 10), buffer.newest_updated_at
   end
 
+    def test_top_level_items_are_overwritten
+    buffer = CouchTap::QueryBuffer.new
+
+    buffer.insert(item_to_insert(true, 123, { a: 3, b: 5 }))
+    buffer.insert(item_to_insert(true, 123, { a: 'a', b: 6 }))
+    entities = []
+    buffer.each { |e| entities << e }
+
+    assert_equal 1, entities.count
+    assert_equal [['a', 6]], entities.first.insert_values(%i(a b))
+  end
+
+  def test_child_elements_are_deleted
+    buffer = CouchTap::QueryBuffer.new
+
+    buffer.insert(item_to_insert(false, 123, { a: 3, b: 5 }))
+    buffer.delete(item_to_delete(123, false))
+
+    entities = []
+    buffer.each { |e| entities << e }
+
+    assert_equal 1, entities.count
+    refute entities.first.any_insert?
+  end
+
   private
 
   def item_to_insert(top_level, id, data = nil)
@@ -172,33 +197,7 @@ class QueryBufferTest < Test::Unit::TestCase
     CouchTap::Operations::InsertOperation.new(:item, top_level, id, data)
   end
 
-  def item_to_delete(id)
-    CouchTap::Operations::DeleteOperation.new(:item, true, :item_id, id)
-  end
-
-  def test_top_level_items_are_overwritten
-    buffer = CouchTap::QueryBuffer.new
-
-    buffer.insert('dummy', true, 123, a: 1, b: 'c')
-    buffer.insert('dummy', true, 123, a: 2, b: 'd')
-
-    entities = []
-    buffer.each { |e| entities << e }
-
-    assert_equal 1, entities.count
-    assert_equal [[2, 'd']], entities.first.insert_values(%i(a b))
-  end
-
-  def test_child_elements_are_deleted
-    buffer = CouchTap::QueryBuffer.new
-
-    buffer.insert('dummy', false, 123, a: 1, b: 'c')
-    buffer.delete('dummy', false, 'dummy_id', 123)
-
-    entities = []
-    buffer.each { |e| entities << e }
-
-    assert_equal 1, entities.count
-    refute entities.first.any_insert?
+  def item_to_delete(id, top_level=true, type=:item)
+    CouchTap::Operations::DeleteOperation.new(type, top_level, :item_id, id)
   end
 end
