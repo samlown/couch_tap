@@ -4,7 +4,7 @@ module Builders
   class TableTest < Test::Unit::TestCase
 
     def setup
-      @queue = CouchTap::OperationsQueue.new
+      @queue = CouchTap::OperationsQueue.new(100_000)
       @metrics = CouchTap::Metrics.new
       @executor = CouchTap::QueryExecutor.new('changes', @queue, @metrics, db: 'sqlite:/')
       @database = initialize_database(@executor.database)

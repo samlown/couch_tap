@@ -116,7 +116,7 @@ class ChangesTest < Test::Unit::TestCase
       to_return(status: 200, body: { db_name: TEST_DB_NAME }.to_json, headers: {})
 
     @changes = CouchTap::Changes.new couch_db: TEST_DB_ROOT, timeout: 0.1 do
-      database db: "sqlite:/", batch_size: 1
+      database db: "sqlite:/", batch_size: 50_000
       document :type => 'Foo' do
         table :foo do
         end

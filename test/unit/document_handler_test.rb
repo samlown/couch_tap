@@ -4,7 +4,7 @@ require 'test_helper'
 class DocumentHandlerTest < Test::Unit::TestCase
 
   def test_init
-    @queue = CouchTap::OperationsQueue.new
+    @queue = CouchTap::OperationsQueue.new(100_000)
     @metrics = CouchTap::Metrics.new
     @executor = CouchTap::QueryExecutor.new('changes', @queue, @metrics, db: 'sqlite:/')
     @handler = CouchTap::DocumentHandler.new 'changes' do

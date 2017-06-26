@@ -36,7 +36,7 @@ module CouchTap
     #### DSL
 
     def database(cfg)
-      @operations_queue = CouchTap::OperationsQueue.new
+      @operations_queue = CouchTap::OperationsQueue.new(cfg[:batch_size] * 2)
       @query_executor = CouchTap::QueryExecutor.new(source.name, @operations_queue, @metrics, cfg.merge(timeout: @timeout))
     end
 

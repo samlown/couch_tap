@@ -4,7 +4,7 @@ require 'test_helper'
 class QueryExecutorTest < Test::Unit::TestCase
 
   def setup
-    @queue = CouchTap::OperationsQueue.new
+    @queue = CouchTap::OperationsQueue.new(100_000)
   end
 
   def test_insert_buffers_the_data_if_not_full
