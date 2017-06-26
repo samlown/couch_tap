@@ -3,11 +3,9 @@ module CouchTap
   class OperationsQueue
     extend Forwardable
 
-    MAX_QUEUE_SIZE = 100_000
-
     def_delegators :@queue, :length, :pop
 
-    def initialize(max_length = MAX_QUEUE_SIZE, sleep_time = 1)
+    def initialize(max_length, sleep_time = 1)
       @queue = Queue.new
       @max_length = max_length
       @sleep_time = sleep_time

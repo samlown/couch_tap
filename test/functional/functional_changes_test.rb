@@ -13,7 +13,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
       "_id" => "10", "type" => "Sale", "code" => "Code 1", "amount" => 600
     }}
 
-    changes = config_changes batch_size: 1
+    changes = config_changes batch_size: 2
 
     changes.send(:process_row, doc)
 
@@ -38,7 +38,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
       }}
     ]
 
-    changes = config_changes batch_size: 1
+    changes = config_changes batch_size: 3
 
     docs.each { |d| changes.send(:process_row, d) }
 
@@ -93,7 +93,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
       }}
     ]
 
-    changes = config_changes batch_size: 1
+    changes = config_changes batch_size: 2
 
     docs.each { |d| changes.send(:process_row, d) }
 
@@ -134,7 +134,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
       ]
     }}
 
-    changes = config_changes batch_size: 1
+    changes = config_changes batch_size: 5
 
     changes.send(:process_row, doc)
 
@@ -162,7 +162,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
       }}
     ]
 
-    changes = config_changes batch_size: 1
+    changes = config_changes batch_size: 5
 
     docs.each { |d| changes.send(:process_row, d) }
 
@@ -247,7 +247,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
   end
 
   def test_delete_children
-    changes = config_changes batch_size: 1
+    changes = config_changes batch_size: 6
 
     changes.send(:process_row, { "id" => 1, "seq" => 111, "doc" => { "_id" => "50", "type" => "Sale", "code" => "Code 1", "amount" => 600, "entries" => [{ "price" => 500 }, { "price" => 100 }] }})
     changes.send(:process_row, { "id" => "50", "seq" => 112, "deleted" => true } )

@@ -5,7 +5,7 @@ module Destroyers
 
     def setup
       @parent = mock()
-      @queue = CouchTap::OperationsQueue.new
+      @queue = CouchTap::OperationsQueue.new(100_000)
       @metrics = CouchTap::Metrics.new
       @executor = CouchTap::QueryExecutor.new('changes', @queue, @metrics, db: 'sqlite:/')
     end
