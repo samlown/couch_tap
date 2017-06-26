@@ -13,6 +13,7 @@ module CouchTap
 
     def add_operation(op)
       while @queue.length >= @max_length
+        logger.warn "Sleeping #{@sleep_time} after seeing #{@queue.length} operations in the queue!"
         sleep @sleep_time
       end
       @queue.push op
@@ -20,6 +21,12 @@ module CouchTap
 
     def close
       add_operation(Operations::CloseQueueOperation.new)
+    end
+
+    private
+
+    def logger
+      CouchTap.logger
     end
   end
 end
