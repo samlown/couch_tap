@@ -86,7 +86,7 @@ module CouchTap
     def perform_request
       @status = RUNNING
       retry_exception = Proc.new do |exception|
-        logger.error "#{source.name}: connection failed: #{e.message}, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
+        logger.error "#{source.name}: connection failed: #{exception.message}, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
       end
       Retryable.retryable(tries: 4,
                           sleep: lambda { |n| 4**n },
