@@ -71,7 +71,7 @@ module Builders
       @row.execute(@queue)
 
       assert_equal 1, @queue.length
-      assert_equal CouchTap::Operations::InsertOperation.new(:group_items, false, '1234', group_id: '1234', item_id: 'i1234'), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:group_items, false, :group_id, '1234', group_id: '1234', item_id: 'i1234'), @queue.pop
     end
 
     def test_execute_with_new_row
@@ -81,7 +81,7 @@ module Builders
       @row.execute(@queue)
 
       assert_equal 1, @queue.length
-      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Some Item'), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, :item_id, '1234', item_id: '1234', name: 'Some Item'), @queue.pop
     end
 
     def test_reuses_id
@@ -90,11 +90,11 @@ module Builders
       @row = CouchTap::Builders::Table.new(@handler, :items)
       @row.execute(@queue)
       assert_equal 1, @queue.length
-      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Some Item'), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, :item_id, '1234', item_id: '1234', name: 'Some Item'), @queue.pop
 
       @row.execute(@queue)
       assert_equal 1, @queue.length
-      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Some Item'), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, :item_id, '1234', item_id: '1234', name: 'Some Item'), @queue.pop
     end
 
     def test_execute_with_new_row_with_time
@@ -105,7 +105,7 @@ module Builders
       @row.execute(@queue)
 
       assert_equal 1, @queue.length
-      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Some Item', created_at: time.to_s), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, :item_id, '1234', item_id: '1234', name: 'Some Item', created_at: time.to_s), @queue.pop
     end
 
     def test_building_collections
@@ -138,9 +138,9 @@ module Builders
       @row.execute(@queue)
 
       assert_equal 3, @queue.length
-      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Some Group'), @queue.pop
-      assert_equal CouchTap::Operations::InsertOperation.new(:groups, false, '1234', item_id: '1234', name: 'Group 1'), @queue.pop
-      assert_equal CouchTap::Operations::InsertOperation.new(:groups, false, '1234', item_id: '1234', name: 'Group 2'), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, :item_id, '1234', item_id: '1234', name: 'Some Group'), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:groups, false, :item_id, '1234', item_id: '1234', name: 'Group 1'), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:groups, false, :item_id, '1234', item_id: '1234', name: 'Group 2'), @queue.pop
     end
 
 
@@ -153,7 +153,7 @@ module Builders
       @row.execute(@queue)
 
       assert_equal 1, @queue.length
-      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Some Other Item'), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, :item_id, '1234', item_id: '1234', name: 'Some Other Item'), @queue.pop
     end
 
     def test_column_assign_with_value
@@ -165,7 +165,7 @@ module Builders
       @row.execute(@queue)
 
       assert_equal 1, @queue.length
-      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Force the name'), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, :item_id, '1234', item_id: '1234', name: 'Force the name'), @queue.pop
     end
 
     def test_column_assign_with_nil
@@ -177,7 +177,7 @@ module Builders
       @row.execute(@queue)
 
       assert_equal 1, @queue.length
-      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: nil), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, :item_id, '1234', item_id: '1234', name: nil), @queue.pop
     end
 
     def test_column_assign_with_empty_for_non_string
@@ -187,7 +187,7 @@ module Builders
       @row.execute(@queue)
 
       assert_equal 1, @queue.length
-      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Some Item Name', created_at: nil), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, :item_id, '1234', item_id: '1234', name: 'Some Item Name', created_at: nil), @queue.pop
     end
 
     def test_column_assign_with_integer
@@ -197,7 +197,7 @@ module Builders
       @row.execute(@queue)
 
       assert_equal 1, @queue.length
-      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', count: 3), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, :item_id, '1234', item_id: '1234', count: 3), @queue.pop
     end
 
     def test_column_assign_with_integer_as_string
@@ -207,7 +207,7 @@ module Builders
       @row.execute(@queue)
 
       assert_equal 1, @queue.length
-      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', count: 1), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, :item_id, '1234', item_id: '1234', count: 1), @queue.pop
     end
 
     def test_column_assign_with_float
@@ -217,7 +217,7 @@ module Builders
       @row.execute(@queue)
 
       assert_equal 1, @queue.length
-      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', price: 1.2), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, :item_id, '1234', item_id: '1234', price: 1.2), @queue.pop
     end
 
 
@@ -228,7 +228,7 @@ module Builders
       @row.execute(@queue)
 
       assert_equal 1, @queue.length
-      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', price: 1.2), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, :item_id, '1234', item_id: '1234', price: 1.2), @queue.pop
     end
 
 
@@ -243,7 +243,7 @@ module Builders
       @row.execute(@queue)
 
       assert_equal 1, @queue.length
-      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Name from block'), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, :item_id, '1234', item_id: '1234', name: 'Name from block'), @queue.pop
     end
 
     def test_column_assign_with_no_field
@@ -255,7 +255,7 @@ module Builders
       @row.execute(@queue)
 
       assert_equal 1, @queue.length
-      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, '1234', item_id: '1234', name: 'Some Other Item'), @queue.pop
+      assert_equal CouchTap::Operations::InsertOperation.new(:items, true, :item_id, '1234', item_id: '1234', name: 'Some Other Item'), @queue.pop
     end
 
 

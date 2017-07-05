@@ -1,4 +1,3 @@
-
 require 'test_helper'
 
 class QueryBufferTest < Test::Unit::TestCase
@@ -10,11 +9,11 @@ class QueryBufferTest < Test::Unit::TestCase
     data = { a: 1, b: 'b' }
 
     entity = mock(top_level: true)
-    entity.expects(:insert).with(id, data)
+    entity.expects(:insert).with(:item_id, id, data)
 
     CouchTap::Entity.expects(:new).with(:item, true).returns(entity)
 
-    buffer.insert(item_to_insert(true, 123, data))
+    buffer.insert(item_to_insert(true, :item_id, 123, data))
   end
 
   def test_insert_reuses_entities_with_same_name
@@ -28,29 +27,29 @@ class QueryBufferTest < Test::Unit::TestCase
 
     entity = mock()
     entity.expects(:top_level).twice.returns(true)
-    entity.expects(:insert).with(id, data)
-    entity.expects(:insert).with(id2, data2)
+    entity.expects(:insert).with(:item_id, id, data)
+    entity.expects(:insert).with(:item_id, id2, data2)
 
     CouchTap::Entity.expects(:new).with(:item, true).returns(entity)
 
-    buffer.insert(item_to_insert(true, id, data))
-    buffer.insert(item_to_insert(true, id2, data2))
+    buffer.insert(item_to_insert(true, :item_id, id, data))
+    buffer.insert(item_to_insert(true, :item_id, id2, data2))
   end
 
   def test_insert_cannot_have_same_entity_as_both_top_level_and_dependent
     buffer = CouchTap::QueryBuffer.new
 
-    buffer.insert(item_to_insert(true, 123))
+    buffer.insert(item_to_insert(true, :item_id, 123))
     assert_raises ArgumentError do
-      buffer.insert(item_to_insert(false, 123))
+      buffer.insert(item_to_insert(false, :item_id, 123))
     end
   end
 
   def test_insert_increases_size
     buffer = CouchTap::QueryBuffer.new
 
-    assert_equal 1, buffer.insert(item_to_insert(true, 123))
-    assert_equal 2, buffer.insert(item_to_insert(true, 123))
+    assert_equal 1, buffer.insert(item_to_insert(true, :item_id, 123))
+    assert_equal 2, buffer.insert(item_to_insert(true, :item_id, 123))
   end
 
   def test_delete_adds_data_to_be_deleted
@@ -64,7 +63,7 @@ class QueryBufferTest < Test::Unit::TestCase
 
     CouchTap::Entity.expects(:new).with(:item, true).returns(entity)
 
-    buffer.delete(item_to_delete(id))
+    buffer.delete(item_to_delete(:item_id, id))
   end
 
   def test_delete_reuses_entities_with_same_name
@@ -81,32 +80,32 @@ class QueryBufferTest < Test::Unit::TestCase
 
     CouchTap::Entity.expects(:new).with(:item, true).returns(entity)
 
-    buffer.delete(item_to_delete(id))
-    buffer.delete(item_to_delete(id2))
+    buffer.delete(item_to_delete(:item_id, id))
+    buffer.delete(item_to_delete(:item_id, id2))
   end
 
   def test_delete_cannot_have_same_entity_as_both_top_level_and_dependent
     buffer = CouchTap::QueryBuffer.new
 
-    buffer.delete(item_to_delete(123))
+    buffer.delete(item_to_delete(:item_id, 123))
     assert_raises ArgumentError do
-      buffer.delete(item_to_delete(987, false))
+      buffer.delete(item_to_delete(:item_id, 987, false))
     end
   end
 
   def test_delete_increases_size
     buffer = CouchTap::QueryBuffer.new
 
-    assert_equal 1, buffer.delete(item_to_delete(123))
-    assert_equal 2, buffer.delete(item_to_delete(987))
+    assert_equal 1, buffer.delete(item_to_delete(:item_id, 123))
+    assert_equal 2, buffer.delete(item_to_delete(:item_id, 987))
   end
 
-   def test_clear_deletes_newest_updated_at
+  def test_clear_deletes_newest_updated_at
     buffer = CouchTap::QueryBuffer.new
     dummy_date = Time.now.round
-    assert_equal 1, buffer.insert(item_to_insert(true, 123, { updated_at: dummy_date.rfc2822 }))
+    assert_equal 1, buffer.insert(item_to_insert(true, :item_id, 123, { updated_at: dummy_date.rfc2822 }))
     assert_equal dummy_date, buffer.newest_updated_at
-    assert_equal 2, buffer.delete(item_to_delete(987))
+    assert_equal 2, buffer.delete(item_to_delete(:item_id, 987))
     buffer.clear
     assert_equal nil, buffer.newest_updated_at
   end
@@ -114,16 +113,16 @@ class QueryBufferTest < Test::Unit::TestCase
   def test_clear_resets_the_size
     buffer = CouchTap::QueryBuffer.new
 
-    assert_equal 1, buffer.insert(item_to_insert(true, 123))
-    assert_equal 2, buffer.delete(item_to_delete(987))
+    assert_equal 1, buffer.insert(item_to_insert(true, :item_id, 123))
+    assert_equal 2, buffer.delete(item_to_delete(:item_id, 987))
     buffer.clear
-    assert_equal 1, buffer.insert(item_to_insert(true, 123))
+    assert_equal 1, buffer.insert(item_to_insert(true, :item_id, 123))
   end
 
   def test_clear_clears_the_buffer
     buffer = CouchTap::QueryBuffer.new
 
-    assert_equal 1, buffer.insert(item_to_insert(true, 123))
+    assert_equal 1, buffer.insert(item_to_insert(true, :item_id, 123))
     assert_equal 2, buffer.delete(CouchTap::Operations::DeleteOperation.new(:another, true, :another_id, 987))
 
     items = 0
@@ -140,7 +139,7 @@ class QueryBufferTest < Test::Unit::TestCase
   def test_can_iterate_over_entities
     buffer = CouchTap::QueryBuffer.new
 
-    assert_equal 1, buffer.insert(item_to_insert(true, 123))
+    assert_equal 1, buffer.insert(item_to_insert(true, :item_id, 123))
     assert_equal 2, buffer.delete(CouchTap::Operations::DeleteOperation.new(:another, true, :another_id, 987))
 
     entity_names = []
@@ -152,24 +151,24 @@ class QueryBufferTest < Test::Unit::TestCase
     dummy_date = Time.new(2008,6,21, 13,30,0)
     buffer = CouchTap::QueryBuffer.new
 
-    buffer.insert(item_to_insert(true, 123, { updated_at: dummy_date.rfc2822 }))
+    buffer.insert(item_to_insert(true, :item_id, 123, { updated_at: dummy_date.rfc2822 }))
     assert_equal dummy_date, buffer.newest_updated_at
 
-    buffer.insert(item_to_insert(true, 456))
+    buffer.insert(item_to_insert(true, :item_id, 456))
     assert_equal dummy_date, buffer.newest_updated_at
 
-    buffer.insert(item_to_insert(true, 123, { updated_at: (dummy_date - 10).rfc2822 }))
+    buffer.insert(item_to_insert(true, :item_id, 123, { updated_at: (dummy_date - 10).rfc2822 }))
     assert_equal dummy_date, buffer.newest_updated_at
 
-    buffer.insert(item_to_insert(true, 123, { updated_at: (dummy_date + 10).rfc2822 }))
+    buffer.insert(item_to_insert(true, :item_id, 123, { updated_at: (dummy_date + 10).rfc2822 }))
     assert_equal (dummy_date + 10), buffer.newest_updated_at
   end
 
-    def test_top_level_items_are_overwritten
+  def test_top_level_items_are_overwritten
     buffer = CouchTap::QueryBuffer.new
 
-    buffer.insert(item_to_insert(true, 123, { a: 3, b: 5 }))
-    buffer.insert(item_to_insert(true, 123, { a: 'a', b: 6 }))
+    buffer.insert(item_to_insert(true, :item_id, 123, { a: 3, b: 5 }))
+    buffer.insert(item_to_insert(true, :item_id, 123, { a: 'a', b: 6 }))
     entities = []
     buffer.each { |e| entities << e }
 
@@ -180,8 +179,8 @@ class QueryBufferTest < Test::Unit::TestCase
   def test_child_elements_are_deleted
     buffer = CouchTap::QueryBuffer.new
 
-    buffer.insert(item_to_insert(false, 123, { a: 3, b: 5 }))
-    buffer.delete(item_to_delete(123, false))
+    buffer.insert(item_to_insert(false, :item_id, 123, { a: 3, b: 5 }))
+    buffer.delete(item_to_delete(:item_id, 123, false))
 
     entities = []
     buffer.each { |e| entities << e }
@@ -192,12 +191,12 @@ class QueryBufferTest < Test::Unit::TestCase
 
   private
 
-  def item_to_insert(top_level, id, data = nil)
+  def item_to_insert(top_level, pk, id, data = nil)
     data ||= { item_id: id, name: 'dummy', count: rand() }
-    CouchTap::Operations::InsertOperation.new(:item, top_level, id, data)
+    CouchTap::Operations::InsertOperation.new(:item, top_level, pk, id, data)
   end
 
-  def item_to_delete(id, top_level=true, type=:item)
-    CouchTap::Operations::DeleteOperation.new(type, top_level, :item_id, id)
+  def item_to_delete(pk, id, top_level=true, type=:item)
+    CouchTap::Operations::DeleteOperation.new(type, top_level, pk, id)
   end
 end

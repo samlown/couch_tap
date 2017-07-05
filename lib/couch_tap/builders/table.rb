@@ -77,7 +77,7 @@ module CouchTap
 
       def execute(operations_queue)
         # Insert the record and prepare ID for sub-tables
-        operations_queue.add_operation(CouchTap::Operations::InsertOperation.new(name, parent.is_a?(DocumentHandler), id, attributes))
+        operations_queue.add_operation(CouchTap::Operations::InsertOperation.new(name, parent.is_a?(DocumentHandler), primary_keys.first, id, attributes))
 
         # TODO remove this?
         set_attribute(primary_keys.last, id) unless id.blank?
