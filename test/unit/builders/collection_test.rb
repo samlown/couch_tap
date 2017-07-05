@@ -61,14 +61,23 @@ module Builders
       end
     end
 
+    def test_defining_table_with_single_item
+      @parent.expects(:data).returns({'item' => { name: 'Item 1' }})
+      CouchTap::Builders::Table.expects(:new).with(@parent, :item, data: { name: 'Item 1'})
+      CouchTap::Builders::Collection.new(@parent, :item) do
+        table :item do
+        end
+      end
+    end
+
     def test_execution
-      @table = mock()
-      CouchTap::Builders::Table.expects(:new).twice.returns(@table)
+      table = mock()
+      CouchTap::Builders::Table.expects(:new).twice.returns(table)
       @parent.expects(:data).returns({'items' => [{:name => 'Item 1'}, {:name => 'Item 2'}]})
       @collection = CouchTap::Builders::Collection.new(@parent, :items) do
-        table :invoice_items
+        table(:invoice_items)
       end
-      @table.expects(:execute).twice
+      table.expects(:execute).twice
       @collection.execute(@executor)
     end
 

@@ -152,6 +152,28 @@ class FunctionalChangesTest < Test::Unit::TestCase
     assert_sequence changes.seq, 111
   end
 
+  def test_insert_sales_and_single_nested_entry
+    doc = { "id" => 1, "seq" => 111, "doc" => {
+      "_id" => "50", "type" => "Sale", "code" => "Code 1", "amount" => 600, "entries" => { "price" => 500 }
+    }}
+
+    changes = config_changes batch_size: 4
+
+    changes.send(:process_row, doc)
+
+    changes.stop_consumer
+
+    sales = @database[:sales].to_a
+    assert_equal 1, sales.count
+    assert_equal({ sale_id: "50", code: "Code 1", amount: 600, updated_at: nil }, sales.first)
+
+    entries = @database[:sale_entries].to_a
+    assert_equal 1, entries.count
+    assert_includes entries, sale_id: "50", price: 500
+
+    assert_sequence changes.seq, 111
+  end
+
   def test_insert_and_update_sales_and_nested_entries
     docs = [
       { "id" => 1, "seq" => 111, "doc" => {
