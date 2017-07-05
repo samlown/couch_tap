@@ -91,13 +91,15 @@ module CouchTap
            logger.debug "Processing queries for #{entity.name}"
             batch_summary[entity.name] ||= []
             if entity.any_delete?
-              delta = measure do
-                database[entity.name].where({ entity.primary_key => entity.deletes }).delete
+              entity.deleting_keys.each do |key|
+                delta = measure do
+                  database[entity.name].where({ key => entity.deletes(key) }).delete
+                end
+                @metrics.histogram('delete.time', delta, table_name: entity.name, key: key)
+                @metrics.gauge('delete.latency.unit', delta/entity.deletes(key).size.to_f, table_name: entity.name, key: key)
+                batch_summary[entity.name] << "Deleted #{entity.deletes(key).size} in #{delta} ms."
+                logger.debug "#{entity.name}: #{entity.deletes(key).size} rows deleted in #{delta} ms."
               end
-              @metrics.histogram('delete.time', delta, table_name: entity.name)
-              @metrics.gauge('delete.latency.unit', delta/entity.deletes.size.to_f, table_name: entity.name)
-              batch_summary[entity.name] << "Deleted #{entity.deletes.size} in #{delta} ms."
-              logger.debug "#{entity.name}: #{entity.deletes.size} rows deleted in #{delta} ms."
             end
             if entity.any_insert?
               keys = columns(entity.name)

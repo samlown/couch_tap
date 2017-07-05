@@ -46,11 +46,10 @@ module CouchTap
   end
 
   class Entity
-    attr_reader :name, :primary_key, :top_level
+    attr_reader :name, :top_level
 
     def initialize(name, top_level)
-      @deletes = Set.new
-      @primary_key = nil
+      @deletes = {}
       @top_level = top_level
       @inserts = {}
       @name = name
@@ -66,16 +65,16 @@ module CouchTap
     end
 
     def delete(key, id)
-      if @primary_key && @primary_key != key
-        raise "More than one primary key used for deletion at #{@name}: [#{@primary_key}, #{key}]"
-      end
-      @primary_key = key
-      @deletes << id
-        @inserts.delete(build_composite_key(key, id))
+      (@deletes[key] ||= Set.new) << id
+      @inserts.delete(build_composite_key(key, id))
     end
 
-    def deletes
-      @deletes.to_a
+    def deleting_keys
+      @deletes.keys
+    end
+
+    def deletes(key)
+      @deletes[key].to_a
     end
 
     def insert_values(keys)

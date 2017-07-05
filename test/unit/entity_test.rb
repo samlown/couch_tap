@@ -70,10 +70,11 @@ class EntityTest < Test::Unit::TestCase
     id2 = 234
     entity = CouchTap::Entity.new('dummy', true)
 
-    entity.delete('dummy_id', id)
-    entity.delete('dummy_id', id2)
+    entity.delete(:dummy_id, id)
+    entity.delete(:dummy_id, id2)
 
-    assert_equal [id, id2], entity.deletes
+    assert_equal [:dummy_id], entity.deleting_keys
+    assert_equal [id, id2], entity.deletes(:dummy_id)
   end
 
   def test_delete_removes_duplicate_ids
@@ -83,26 +84,8 @@ class EntityTest < Test::Unit::TestCase
     entity.delete(:dummy_id, id)
     entity.delete(:dummy_id, id)
 
-    assert_equal [id], entity.deletes
-  end
-
-  def test_delete_sets_the_pk
-    key = 'dummy_id'
-    entity = CouchTap::Entity.new('dummy', true)
-    entity.delete(key, 123)
-
-    assert_equal key, entity.primary_key
-  end
-
-  def test_delete_protects_against_different_pks
-    key = 'dummy_id'
-    entity = CouchTap::Entity.new('dummy', true)
-    entity.delete(key, 123)
-
-    assert_equal key, entity.primary_key
-    assert_raises RuntimeError  do
-      entity.delete('another_key', 123)
-    end
+    assert_equal [:dummy_id], entity.deleting_keys
+    assert_equal [id], entity.deletes(:dummy_id)
   end
 
   def test_delete_removes_from_insertions_list_if_top_level
@@ -119,6 +102,17 @@ class EntityTest < Test::Unit::TestCase
     entity.delete(:dummy_id, 123)
 
     refute entity.any_insert?
+  end
+
+  def test_delete_works_with_different_pks
+    entity = CouchTap::Entity.new('dummy', false)
+    entity.delete(:dummy_id, 123)
+    entity.delete(:dummy_id2, 234)
+
+    assert entity.any_delete?
+    assert_equal [:dummy_id, :dummy_id2], entity.deleting_keys
+    assert_equal [123], entity.deletes(:dummy_id)
+    assert_equal [234], entity.deletes(:dummy_id2)
   end
 end
 
