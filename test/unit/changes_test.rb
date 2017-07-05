@@ -27,7 +27,7 @@ class ChangesTest < Test::Unit::TestCase
     assert_equal 4, @queue.length
     assert_equal CouchTap::Operations::BeginTransactionOperation.new, @queue.pop
     assert_equal CouchTap::Operations::DeleteOperation.new(:foo, true, :foo_id, '1234'), @queue.pop
-    assert_equal CouchTap::Operations::InsertOperation.new(:foo, true, '1234', foo_id: '1234', name: 'Some Document'), @queue.pop
+    assert_equal CouchTap::Operations::InsertOperation.new(:foo, true, :foo_id, '1234', foo_id: '1234', name: 'Some Document'), @queue.pop
     assert_equal CouchTap::Operations::EndTransactionOperation.new(1), @queue.pop
   end
 
@@ -40,9 +40,9 @@ class ChangesTest < Test::Unit::TestCase
     assert_equal 6, @queue.length
     assert_equal CouchTap::Operations::BeginTransactionOperation.new, @queue.pop
     assert_equal CouchTap::Operations::DeleteOperation.new(:bar, true, :bar_id, '1234'), @queue.pop
-    assert_equal CouchTap::Operations::InsertOperation.new(:bar, true, '1234', bar_id: '1234', name: 'Some Document'), @queue.pop
+    assert_equal CouchTap::Operations::InsertOperation.new(:bar, true, :bar_id, '1234', bar_id: '1234', name: 'Some Document'), @queue.pop
     assert_equal CouchTap::Operations::DeleteOperation.new(:special_bar, true, :special_bar_id, '1234'), @queue.pop
-    assert_equal CouchTap::Operations::InsertOperation.new(:special_bar, true, '1234', special_bar_id: '1234', name: 'Some Document', special: true), @queue.pop
+    assert_equal CouchTap::Operations::InsertOperation.new(:special_bar, true, :special_bar_id, '1234', special_bar_id: '1234', name: 'Some Document', special: true), @queue.pop
     assert_equal CouchTap::Operations::EndTransactionOperation.new(3), @queue.pop
   end
 

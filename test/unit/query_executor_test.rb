@@ -210,14 +210,14 @@ class QueryExecutorTest < Test::Unit::TestCase
 
     @queue.add_operation(begin_transaction_operation)
     @queue.add_operation(item_to_insert(true, 123))
-    @queue.add_operation(CouchTap::Operations::InsertOperation.new(:item_children, false, 123, item_id: 123, child_name: 'child name'))
+    @queue.add_operation(CouchTap::Operations::InsertOperation.new(:item_children, false, :item_id, 123, item_id: 123, child_name: 'child name'))
     @queue.add_operation(end_transaction_operation(1))
 
     @queue.add_operation(begin_transaction_operation)
     @queue.add_operation(item_to_delete(123))
-    @queue.add_operation(CouchTap::Operations::InsertOperation.new(:items, true, 123, item_id: 123, count: 2, name: 'another name'))
+    @queue.add_operation(CouchTap::Operations::InsertOperation.new(:items, true, :item_id, 123, item_id: 123, count: 2, name: 'another name'))
     @queue.add_operation(CouchTap::Operations::DeleteOperation.new(:item_children, false, :item_id, 123))
-    @queue.add_operation(CouchTap::Operations::InsertOperation.new(:item_children, false, 123, item_id: 123, child_name: 'another child name'))
+    @queue.add_operation(CouchTap::Operations::InsertOperation.new(:item_children, false, :item_id, 123, item_id: 123, child_name: 'another child name'))
     @queue.add_operation(end_transaction_operation(2))
     @queue.close
 
@@ -372,7 +372,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def item_to_insert(top_level, id, updated_at = "Sat, 21 Jun 2008 13:30:00 +0200")
-    CouchTap::Operations::InsertOperation.new(:items, top_level, id, item_id: id,
+    CouchTap::Operations::InsertOperation.new(:items, top_level, :item_id, id, item_id: id,
                                               name: 'dummy', count: rand(), updated_at: updated_at)
   end
 

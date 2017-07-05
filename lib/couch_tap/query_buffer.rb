@@ -11,7 +11,7 @@ module CouchTap
     end
 
     def insert(operation)
-      get_or_create(operation.table, operation.top_level).insert(operation.id, operation.attributes)
+      get_or_create(operation.table, operation.top_level).insert(operation.primary_key, operation.id, operation.attributes)
       if operation.attributes[:updated_at]
         t = Time.parse(operation.attributes[:updated_at])
         @newest_updated_at = t if @newest_updated_at.nil? || @newest_updated_at < t
@@ -31,7 +31,7 @@ module CouchTap
     end
 
     def each(&block)
-      @buffer.values.each &block
+      @buffer.values.each(&block)
     end
 
     private
@@ -56,11 +56,12 @@ module CouchTap
       @name = name
     end
 
-    def insert(id, data)
+    def insert(primary_key, id, data)
+      composite_key = build_composite_key(primary_key, id)
       if @top_level
-        @inserts[id] = [data]
+        @inserts[composite_key] = [data]
       else
-        (@inserts[id] ||= []) << data
+        (@inserts[composite_key] ||= []) << data
       end
     end
 
@@ -70,7 +71,7 @@ module CouchTap
       end
       @primary_key = key
       @deletes << id
-      @inserts.delete(id)
+        @inserts.delete(build_composite_key(key, id))
     end
 
     def deletes
@@ -89,6 +90,12 @@ module CouchTap
 
     def any_insert?
       @inserts.any?
+    end
+
+    private
+
+    def build_composite_key(key, value)
+      "#{key}:#{value}"
     end
   end
 end

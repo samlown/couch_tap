@@ -7,7 +7,7 @@ class EntityTest < Test::Unit::TestCase
     id = 123
     data = { id: id, a: 1, b: "b" }
     entity = CouchTap::Entity.new('dummy', true)
-    entity.insert(id, data)
+    entity.insert(:id, id, data)
     assert_equal [[id, 1, "b"]], entity.insert_values(data.keys)
   end
 
@@ -15,7 +15,7 @@ class EntityTest < Test::Unit::TestCase
     id = 123
     data = { id: id, a: 1, b: "b" }
     entity = CouchTap::Entity.new('dummy', false)
-    entity.insert(id, data)
+    entity.insert(:id, id, data)
     assert_equal [[id, 1, "b"]], entity.insert_values(data.keys)
   end
 
@@ -25,8 +25,8 @@ class EntityTest < Test::Unit::TestCase
     data2 = { id: id, a: 2, b: "c" }
     entity = CouchTap::Entity.new('dummy', true)
 
-    entity.insert(id, data)
-    entity.insert(id, data2)
+    entity.insert(:id, id, data)
+    entity.insert(:id, id, data2)
 
     assert_equal [[id, 2, "c"]], entity.insert_values(data.keys)
   end
@@ -37,8 +37,8 @@ class EntityTest < Test::Unit::TestCase
     data2 = { id: id, a: 2, b: "c" }
     entity = CouchTap::Entity.new('dummy', false)
 
-    entity.insert(id, data)
-    entity.insert(id, data2)
+    entity.insert(:id, id, data)
+    entity.insert(:id, id, data2)
 
     assert_equal [[id, 1, "b"], [id, 2, "c"]], entity.insert_values(data.keys)
   end
@@ -48,9 +48,21 @@ class EntityTest < Test::Unit::TestCase
     data = { id: id, a: 1, b: "b" }
     entity = CouchTap::Entity.new('dummy', true)
 
-    entity.insert(id, data)
+    entity.insert(:id, id, data)
 
     assert_equal [[nil, id, nil, 1, nil, "b", nil]], entity.insert_values([:c, :id, :d, :a, :e, :b, :f])
+  end
+
+  def test_insert_works_with_different_primary_keys
+    id = 123
+    data = { id1: id, a: 1, b: "b" }
+    data2 = { id2: id, a: 2, b: "c" }
+    entity = CouchTap::Entity.new('dummy', true)
+
+    entity.insert(:id1, id, data)
+    entity.insert(:id2, id, data2)
+
+    assert_equal [[id, nil, 1, "b"], [nil, id, 2, "c"]], entity.insert_values([:id1, :id2, :a, :b])
   end
 
   def test_delete_saves_the_entity_id
@@ -68,8 +80,8 @@ class EntityTest < Test::Unit::TestCase
     id = 123
     entity = CouchTap::Entity.new('dummy', true)
 
-    entity.delete('dummy_id', id)
-    entity.delete('dummy_id', id)
+    entity.delete(:dummy_id, id)
+    entity.delete(:dummy_id, id)
 
     assert_equal [id], entity.deletes
   end
@@ -95,16 +107,16 @@ class EntityTest < Test::Unit::TestCase
 
   def test_delete_removes_from_insertions_list_if_top_level
     entity = CouchTap::Entity.new('dummy', true)
-    entity.insert(123, a: 1, b: 'c')
-    entity.delete('dummy_id', 123)
+    entity.insert(:dummy_id, 123, a: 1, b: 'c')
+    entity.delete(:dummy_id, 123)
 
     refute entity.any_insert?
   end
 
   def test_delete_removes_from_insertions_list_if_child
     entity = CouchTap::Entity.new('dummy', false)
-    entity.insert(123, a: 1, b: 'c')
-    entity.delete('dummy_id', 123)
+    entity.insert(:dummy_id, 123, a: 1, b: 'c')
+    entity.delete(:dummy_id, 123)
 
     refute entity.any_insert?
   end
