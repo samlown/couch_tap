@@ -36,7 +36,8 @@ module CouchTap
     #### DSL
 
     def database(cfg)
-      @operations_queue = CouchTap::OperationsQueue.new(cfg[:batch_size] * 2)
+      @batch_size = cfg.fetch(:batch_size)
+      @operations_queue = CouchTap::OperationsQueue.new(@batch_size * 2)
       @query_executor = CouchTap::QueryExecutor.new(source.name, @operations_queue, @metrics, cfg.merge(timeout: @timeout))
     end
 
@@ -59,7 +60,7 @@ module CouchTap
       start_consumer
       start_timer
       prepare_parser
-      perform_request
+      start_producer
     end
 
     def seq
@@ -77,14 +78,48 @@ module CouchTap
       @consumer.join
     end
 
+    def start_producer
+      @status = RUNNING
+      reprocess
+      live_processing
+    end
+
     def stop_timer
       @timer.wait
     end
 
     protected
 
-    def perform_request
-      @status = RUNNING
+    def changes_url
+      url = File.join(source.root, '_changes')
+      uri = URI.parse(url)
+      # Authenticate?
+      if uri.user.present? && uri.password.present?
+        @http.set_auth(source.root, uri.user, uri.password)
+      end
+      url
+    end
+
+    def reprocess
+      logger.info "#{source.name}: Reprocessing changes from seq: #{seq}"
+
+      curr_seq = seq
+      while true
+        # Make sure the request has the latest sequence
+        query = { since: curr_seq, feed: 'normal', heartbeat: COUCHDB_HEARTBEAT * 1000, include_docs: true, limit: @batch_size }
+
+        logger.debug "#{source.name}: Reprocessing changes from seq #{curr_seq} limit: #{@batch_size}"
+
+        data = Yajl::Parser.parse(@http.get_content(changes_url, query))
+        results = data['results']
+        results.each { |r| process_row r }
+        break if results.count < @batch_size
+        curr_seq = data['last_seq']
+      end
+      logger.info "Reprocessing finished for #{source.name} at #{curr_seq}"
+    end
+
+    def live_processing
       retry_exception = Proc.new do |exception|
         logger.error "#{source.name}: connection failed: #{exception.message}, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
       end
@@ -95,20 +130,12 @@ module CouchTap
 
         logger.info "#{source.name}: listening to changes feed from seq: #{seq}"
 
-        url = File.join(source.root, '_changes')
-        uri = URI.parse(url)
-        # Authenticate?
-        if uri.user.present? && uri.password.present?
-          @http.set_auth(source.root, uri.user, uri.password)
-        end
-
         while @status == RUNNING do
           # Make sure the request has the latest sequence
-          query = {:since => seq, :feed => 'continuous', :heartbeat => COUCHDB_HEARTBEAT * 1000,
-                   :include_docs => true}
+          query = { since: seq, feed: 'continuous', heartbeat: COUCHDB_HEARTBEAT * 1000, include_docs: true }
 
           # Perform the actual request for chunked content
-          @http.get_content(url, query) do |chunk|
+          @http.get_content(changes_url, query) do |chunk|
             # logger.debug chunk.strip
             @parser << chunk
             break unless @status == RUNNING
