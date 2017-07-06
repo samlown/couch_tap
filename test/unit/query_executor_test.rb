@@ -244,6 +244,16 @@ class QueryExecutorTest < Test::Unit::TestCase
     File.delete('test.db')
   end
 
+  def test_sequence_row_is_created_if_not_found
+    CouchTap::QueryExecutor.new 'items', @queue, CouchTap::Metrics.new, db: 'sqlite://test.db', batch_size: 10
+    CouchTap::QueryExecutor.new 'dummy', @queue, CouchTap::Metrics.new, db: 'sqlite://test.db', batch_size: 10
+
+    db = Sequel.sqlite('test.db')
+    assert_equal 2, db[:couch_sequence].count
+    assert_equal ['items', 'dummy'], db[:couch_sequence].to_a.map { |obj| obj[:name] }
+    assert_equal [0], db[:couch_sequence].to_a.map { |obj| obj[:seq] }.uniq
+  end
+
   def test_running_a_batch_clears_the_buffer
     executor = config_executor 2
 

@@ -144,8 +144,13 @@ module CouchTap
 
     def find_or_create_sequence_number(name)
       create_sequence_table(name) unless database.table_exists?(:couch_sequence)
-      row = database[:couch_sequence].where(:name => name).first
-      row ? row[:seq] : 0
+      if row = database[:couch_sequence].where(name: name).first
+        row[:seq]
+      else
+        # Add first row
+        database[:couch_sequence].insert(name: name, seq: 0)
+        return 0
+      end
     end
 
     def update_sequence(seq, last_transaction_at)
@@ -162,8 +167,6 @@ module CouchTap
         DateTime :updated_at
         DateTime :last_transaction_at
       end
-      # Add first row
-      database[:couch_sequence].insert(:name => name)
     end
 
     def logger
