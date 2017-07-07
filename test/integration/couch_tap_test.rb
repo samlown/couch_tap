@@ -2,7 +2,7 @@ require 'test_helper'
 
 class CouchTapIntegrationTest < Test::Unit::TestCase
   DB_FILE = "integration.sqlite"
-  DUMMY_ANALYTIC_EVENT = { type: "AnalyticEvent", user_id: "6j26n146"}
+  DUMMY_ANALYTIC_EVENT = { type: "AnalyticEvent", key: "click", value: "6j26n146" }
   DUMMY_SALE = { type: "Sale",
                 code: "R", amount: 20, entries: [ { price: 10.0 },
                                                   { price: 20.0 },
@@ -18,11 +18,13 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
     WebMock.allow_net_connect!
     CouchTap::Changes.send(:remove_const, "RECONNECT_TIMEOUT")
     CouchTap::Changes.const_set("RECONNECT_TIMEOUT", 0.1)
-    @db = Sequel.connect("sqlite://#{DB_FILE}")
+    @db = Sequel.connect("sqlite://#{DB_FILE}?mode=rwc")
     setup_db @db
   end
 
   def teardown
+    CouchTap.instance_variable_set(:@changes, nil)
+    @db.disconnect
     File.delete(DB_FILE)
   end
 
@@ -40,11 +42,28 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
     th.join
   end
 
+  def test_reprocess_and_go_live
+    15.times do |i|
+      TEST_DB.save_doc(DUMMY_ANALYTIC_EVENT.merge(value: i))
+    end
+
+    CouchTap.module_eval(config)
+    th = Thread.new { CouchTap.start }
+    th.abort_on_exception = true
+
+    sleep 1
+    assert_equal 15, @db[:analytic_events].count
+
+    CouchTap.stop
+    TEST_DB.save_doc(dummy: true) # This is a HACK to make the client disconnect from the feed.
+    th.join
+  end
+
   private
 
   def delete_sale_and_insert_analytic_event(sale)
     TEST_DB.delete_doc(sale)
-    TEST_DB.save_doc(DUMMY_ANALYTIC_EVENT)
+    TEST_DB.save_doc(DUMMY_ANALYTIC_EVENT.merge(value: Time.now))
 
     sleep 1 # Sleep to allow the timer to run
 
@@ -56,7 +75,7 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
   def insert_sale_with_entries
     Timecop.freeze(Time.now.round - 120)
     TEST_DB.save_doc(DUMMY_SALE)
-    sleep 0.1
+    sleep 1
     assert_equal 1, @db[:sales].count
     assert_equal 1, @db[:couch_sequence].where(name: TEST_DB_NAME).first[:seq]
     sale = @db[:sales].first
@@ -95,7 +114,7 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
   def config
     <<-CFG
       changes couch_db: TEST_DB_ROOT, timeout: 0.5 do
-        database db: "sqlite://#{DB_FILE}", batch_size: 10
+        database db: "sqlite://#{DB_FILE}?mode=rw", batch_size: 10
 
         document type: "Sale" do
           table :sales do
