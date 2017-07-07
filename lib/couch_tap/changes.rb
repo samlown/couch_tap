@@ -104,8 +104,8 @@ module CouchTap
     def reprocess
       logger.info "#{source.name}: Reprocessing changes from seq: #{@seq}"
 
-      while true
-        # Make sure the request has the latest sequence
+      loop do
+      # Make sure the request has the latest sequence
         query = { since: @seq, feed: 'normal', heartbeat: COUCHDB_HEARTBEAT * 1000, include_docs: true, limit: @batch_size }
 
         logger.debug "#{source.name}: Reprocessing changes from seq #{@seq} limit: #{@batch_size}"
