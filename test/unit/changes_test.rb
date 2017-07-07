@@ -126,24 +126,27 @@ class ChangesTest < Test::Unit::TestCase
       with(query: { feed: 'normal', heartbeat: 30_000, include_docs: true, since: 0, limit: 2 }).
       to_return(status: 200, body: { results: rows, last_seq: 4 }.to_json)
 
+    next_row = {'seq' => 5, 'id' => '3456', 'doc' => {'_id' => '2345', 'type' => 'Bar', 'special' => true, 'name' => 'Some Document'}}
+
     updated_req = stub_request(:get, "#{TEST_DB_ROOT}/_changes").
       with(query: { feed: 'normal', heartbeat: 30_000, include_docs: true, since: 4, limit: 2 }).
-      to_return(status: 200, body: { results: [] }.to_json)
+      to_return(status: 200, body: { results: [next_row], last_seq: 5 }.to_json)
 
-    new_row = {'seq' => 5, 'id' => '3456', 'doc' => {'_id' => '2345', 'type' => 'Bar', 'special' => true, 'name' => 'Some Document'}}
+    new_row = {'seq' => 6, 'id' => '3456', 'doc' => {'_id' => '2345', 'type' => 'Bar', 'special' => true, 'name' => 'Some Document'}}
 
     continuous_req = stub_request(:get, "#{TEST_DB_ROOT}/_changes").
-      with(query: { feed: 'continuous', heartbeat: 30000, include_docs: true, since: 4 }).
+      with(query: { feed: 'continuous', heartbeat: 30000, include_docs: true, since: 5 }).
       to_return(status: 200, body: new_row.to_json )
 
     last_req = stub_request(:get, "#{TEST_DB_ROOT}/_changes").
-      with(query: { feed: 'continuous', heartbeat: 30000, include_docs: true, since: 5 }).
+      with(query: { feed: 'continuous', heartbeat: 30000, include_docs: true, since: 6 }).
       to_return(status: 200, body: {}.to_json )
 
     @changes.send(:start_timer)
     @changes.send(:prepare_parser)
     @changes.send(:start_consumer)
 
+    @changes.send(:reload_seq_from_db)
     @changes.send(:reprocess)
     assert_requested initial_req
     assert_requested updated_req

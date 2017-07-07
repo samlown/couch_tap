@@ -18,7 +18,7 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
     WebMock.allow_net_connect!
     CouchTap::Changes.send(:remove_const, "RECONNECT_TIMEOUT")
     CouchTap::Changes.const_set("RECONNECT_TIMEOUT", 0.1)
-    @db = Sequel.connect("sqlite://#{DB_FILE}?mode=rwc")
+    @db = Sequel.connect("sqlite://#{DB_FILE}")
     setup_db @db
   end
 
@@ -114,7 +114,7 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
   def config
     <<-CFG
       changes couch_db: TEST_DB_ROOT, timeout: 0.5 do
-        database db: "sqlite://#{DB_FILE}?mode=rw", batch_size: 10
+        database db: "sqlite://#{DB_FILE}", batch_size: 10
 
         document type: "Sale" do
           table :sales do

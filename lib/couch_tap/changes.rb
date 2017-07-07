@@ -63,10 +63,6 @@ module CouchTap
       start_producer
     end
 
-    def seq
-      @query_executor.seq
-    end
-
     def stop
       @status = STOPPED
       stop_timer
@@ -79,6 +75,7 @@ module CouchTap
     end
 
     def start_producer
+      reload_seq_from_db
       @status = RUNNING
       reprocess
       live_processing
@@ -100,23 +97,26 @@ module CouchTap
       url
     end
 
-    def reprocess
-      logger.info "#{source.name}: Reprocessing changes from seq: #{seq}"
+    def reload_seq_from_db
+      @seq = @query_executor.seq || 0
+    end
 
-      curr_seq = seq
+    def reprocess
+      logger.info "#{source.name}: Reprocessing changes from seq: #{@seq}"
+
       while true
         # Make sure the request has the latest sequence
-        query = { since: curr_seq, feed: 'normal', heartbeat: COUCHDB_HEARTBEAT * 1000, include_docs: true, limit: @batch_size }
+        query = { since: @seq, feed: 'normal', heartbeat: COUCHDB_HEARTBEAT * 1000, include_docs: true, limit: @batch_size }
 
-        logger.debug "#{source.name}: Reprocessing changes from seq #{curr_seq} limit: #{@batch_size}"
+        logger.debug "#{source.name}: Reprocessing changes from seq #{@seq} limit: #{@batch_size}"
 
         data = Yajl::Parser.parse(@http.get_content(changes_url, query))
         results = data['results']
         results.each { |r| process_row r }
+        @seq = data['last_seq'] if data['last_seq']
         break if results.count < @batch_size
-        curr_seq = data['last_seq']
       end
-      logger.info "Reprocessing finished for #{source.name} at #{curr_seq}"
+      logger.info "Reprocessing finished for #{source.name} at #{@seq}"
     end
 
     def live_processing
@@ -128,11 +128,11 @@ module CouchTap
                           exception_cb: retry_exception,
                           on: [HTTPClient::TimeoutError, HTTPClient::BadResponseError]) do
 
-        logger.info "#{source.name}: listening to changes feed from seq: #{seq}"
+        logger.info "#{source.name}: listening to changes feed from seq: #{@seq}"
 
         while @status == RUNNING do
           # Make sure the request has the latest sequence
-          query = { since: seq, feed: 'continuous', heartbeat: COUCHDB_HEARTBEAT * 1000, include_docs: true }
+          query = { since: @seq, feed: 'continuous', heartbeat: COUCHDB_HEARTBEAT * 1000, include_docs: true }
 
           # Perform the actual request for chunked content
           @http.get_content(changes_url, query) do |chunk|
@@ -142,6 +142,7 @@ module CouchTap
           end
           logger.error "#{source.name}: connection ended, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
           sleep RECONNECT_TIMEOUT
+          reload_seq_from_db
         end
       end
     end

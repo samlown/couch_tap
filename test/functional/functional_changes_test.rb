@@ -22,7 +22,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
     sales = @database[:sales].to_a
     assert_equal 1, sales.count
     assert_equal({ sale_id: "10", code: "Code 1", amount: 600, updated_at: nil }, sales.first)
-    assert_sequence changes.seq, 123
+    assert_sequence 123
   end
 
   def test_insert_multiple_sales
@@ -49,7 +49,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
     assert_includes sales, sale_id: "10", code: "Code 1", amount: 600, updated_at: nil
     assert_includes sales, sale_id: "11", code: "Code 2", amount: 1000, updated_at: nil
     assert_includes sales, sale_id: "12", code: "Code 3", amount: 325, updated_at: nil
-    assert_sequence changes.seq, 125
+    assert_sequence 125
   end
 
   def test_insert_multiple_sales_in_same_batch
@@ -79,7 +79,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
     assert_includes sales, sale_id: "10", code: "Code 1", amount: 600, updated_at: (example_time - 120)
     assert_includes sales, sale_id: "11", code: "Code 2", amount: 1000, updated_at: nil
     assert_includes sales, sale_id: "12", code: "Code 3", amount: 325, updated_at:  example_time
-    assert_sequence changes.seq, 125
+    assert_sequence 125
     assert_equal @database[:couch_sequence].where(name: TEST_DB_NAME).to_a.first[:last_transaction_at], example_time
   end
 
@@ -102,7 +102,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
     sales = @database[:sales].to_a
     assert_equal 1, sales.count
     assert_equal({ sale_id: "10", code: "Code 2", amount: 800, updated_at: nil }, sales.first)
-    assert_sequence changes.seq, 124
+    assert_sequence 124
   end
 
   def test_insert_and_update_sale_in_same_batch
@@ -124,7 +124,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
     sales = @database[:sales].to_a
     assert_equal 1, sales.count
     assert_equal({ sale_id: "10", code: "Code 2", amount: 800, updated_at: nil }, sales.first)
-    assert_sequence changes.seq, 124
+    assert_sequence 124
   end
 
   def test_insert_sales_and_nested_entries
@@ -149,7 +149,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
     assert_includes entries, sale_id: "50", price: 500
     assert_includes entries, sale_id: "50", price: 100
 
-    assert_sequence changes.seq, 111
+    assert_sequence 111
   end
 
   def test_insert_sales_and_single_nested_entry
@@ -171,7 +171,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
     assert_equal 1, entries.count
     assert_includes entries, sale_id: "50", price: 500
 
-    assert_sequence changes.seq, 111
+    assert_sequence 111
   end
 
   def test_insert_and_update_sales_and_nested_entries
@@ -199,7 +199,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
     assert_includes entries, sale_id: "50", price: 300
     assert_includes entries, sale_id: "50", price: 600
 
-    assert_sequence changes.seq, 112
+    assert_sequence 112
   end
 
   def test_insert_and_update_sales_and_nested_entries_in_same_batch
@@ -227,7 +227,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
     assert_includes entries, sale_id: "50", price: 300
     assert_includes entries, sale_id: "50", price: 600
 
-    assert_sequence changes.seq, 112
+    assert_sequence 112
   end
 
   def test_insert_different_document_types
@@ -265,7 +265,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
     assert_includes events, analytic_event_id: "3000", key: "click", value: "yes"
     assert_includes events, analytic_event_id: "3001", key: "double-click", value: "too much"
 
-    assert_sequence changes.seq, 114
+    assert_sequence 114
   end
 
   def test_delete_children
@@ -278,7 +278,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
 
     assert_equal 0, @database[:sales].count
     assert_equal 0, @database[:sale_entries].count
-    assert_sequence changes.seq, 112
+    assert_sequence 112
   end
 
   protected
@@ -332,8 +332,7 @@ class FunctionalChangesTest < Test::Unit::TestCase
     end
   end
 
-  def assert_sequence(in_memory, expected)
-    assert_equal expected, in_memory
+  def assert_sequence(expected)
     assert_equal expected, @database[:couch_sequence].where(name: "couch_tap").to_a.first[:seq]
   end
 end
