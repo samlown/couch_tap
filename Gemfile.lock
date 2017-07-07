@@ -21,6 +21,8 @@ GEM
     addressable (2.5.1)
       public_suffix (~> 2.0, >= 2.0.2)
     byebug (9.0.6)
+    codeclimate-test-reporter (1.0.7)
+      simplecov
     couchrest (1.1.3)
       mime-types (~> 1.15)
       multi_json (~> 1.0)
@@ -70,6 +72,7 @@ PLATFORMS
 
 DEPENDENCIES
   byebug
+  codeclimate-test-reporter (~> 1.0.0)
   couch_tap!
   mocha
   rake
