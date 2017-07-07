@@ -1,5 +1,4 @@
-
-# Couch Tap
+# Couch Tap [![Build Status](https://travis-ci.org/cabify/couch_tap.svg?branch=master)](https://travis-ci.org/cabify/couch_tap)
 
 Utility to listen to a CouchDB changes feed and automatically insert, update,
 or delete rows into a relational database from matching key-value conditions of incoming documents.

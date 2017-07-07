@@ -105,7 +105,7 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
   def assert_equal_sale(expected_sale, db_sale)
     assert_equal expected_sale[:code], db_sale[:code]
     assert_equal expected_sale[:amount], db_sale[:amount]
-    assert_equal Time.now, db_sale[:audited_at]
+    assert_equal Time.now.to_i, db_sale[:audited_at].to_i
     entries = @db[:sale_entries].where(sale_id: db_sale[:sale_id]).to_a
     assert_equal expected_sale[:entries].size, entries.count
     expected_sale[:entries].each { |entry| assert_includes entries, price: entry[:price], sale_id: db_sale[:sale_id] }

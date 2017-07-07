@@ -1,10 +1,12 @@
 language: ruby
 rvm:
-  - 2.4
   - 2.3
   - 2.2
   - 2.1
   - 2.0
-  - jruby
 services:
   - couchdb
+matrix:
+  include:
+    - rvm: "2.4"
+      gemfile: gemfiles/Gemfile_2_4
