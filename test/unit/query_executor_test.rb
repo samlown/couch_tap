@@ -41,7 +41,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_insert_runs_the_query_if_full
-    dummy_date = Time.new(2008,6,21, 13,30,0)
+    dummy_date = Time.new(2008, 6, 21, 13, 30, 0)
     executor = config_executor 2
 
     @queue.add_operation(begin_transaction_operation)
@@ -196,7 +196,7 @@ class QueryExecutorTest < Test::Unit::TestCase
 
     executor.start
 
-    assert_equal %w(234 456), executor.database[:items].select(:item_id).to_a.map { |i| i[:item_id] }
+    assert_equal %w(234 456), executor.database[:items].select(:item_id).to_a.map { |i| i[:item_id] }.sort
     assert_equal 2, executor.database[:couch_sequence].where(name: 'items').first[:seq]
   end
 
@@ -326,7 +326,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     @queue.close
     executor.start
 
-    assert_equal Time.now, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
+    assert_equal Time.now.to_i, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at].to_i
     Timecop.return
   end
 
@@ -381,7 +381,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     connection
   end
 
-  def item_to_insert(top_level, id, updated_at = "Sat, 21 Jun 2008 13:30:00 +0200")
+  def item_to_insert(top_level, id, updated_at = "Sat, 21 Jun 2008 13:30:00 +0000")
     CouchTap::Operations::InsertOperation.new(:items, top_level, :item_id, id, item_id: id,
                                               name: 'dummy', count: rand(), updated_at: updated_at)
   end
