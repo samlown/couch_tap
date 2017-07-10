@@ -1,19 +1,19 @@
 PATH
   remote: .
   specs:
-    couch_tap (0.8.0)
+    couch_tap (0.9.0)
       activesupport (~> 4.0)
       couchrest (~> 1.1.3)
       dogstatsd-ruby
       httpclient (~> 2.6)
       retryable
       sequel (>= 4.36.0)
-      yajl-ruby (~> 1.1.0)
+      yajl-ruby
 
 GEM
   remote: https://rubygems.org/
   specs:
-    activesupport (4.2.8)
+    activesupport (4.2.9)
       i18n (~> 0.7)
       minitest (~> 5.1)
       thread_safe (~> 0.3, >= 0.3.4)
@@ -21,6 +21,8 @@ GEM
     addressable (2.5.1)
       public_suffix (~> 2.0, >= 2.0.2)
     byebug (9.0.6)
+    codeclimate-test-reporter (1.0.7)
+      simplecov
     couchrest (1.1.3)
       mime-types (~> 1.15)
       multi_json (~> 1.0)
@@ -41,11 +43,12 @@ GEM
     multi_json (1.12.1)
     power_assert (0.2.2)
     public_suffix (2.0.5)
+    rake (10.4.2)
     rest-client (1.6.9)
       mime-types (~> 1.16)
     retryable (2.0.4)
     safe_yaml (1.0.4)
-    sequel (4.47.0)
+    sequel (4.48.0)
     simplecov (0.14.1)
       docile (~> 1.1.0)
       json (>= 1.8, < 3)
@@ -69,8 +72,10 @@ PLATFORMS
 
 DEPENDENCIES
   byebug
+  codeclimate-test-reporter (~> 1.0.0)
   couch_tap!
   mocha
+  rake
   simplecov
   sqlite3
   test-unit

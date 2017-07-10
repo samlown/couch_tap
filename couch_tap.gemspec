@@ -7,6 +7,8 @@ Gem::Specification.new do |s|
   s.authors       = ["Sam Lown"]
   s.email         = 'me@samlown.com'
 
+  s.required_ruby_version = '>= 2.0.0'
+
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
@@ -14,7 +16,7 @@ Gem::Specification.new do |s|
 
   s.add_dependency "couchrest", "~> 1.1.3"
   s.add_dependency "httpclient", "~> 2.6"
-  s.add_dependency "yajl-ruby", "~> 1.1.0"
+  s.add_dependency "yajl-ruby"
   s.add_dependency "sequel", ">= 4.36.0"
   s.add_dependency "activesupport", "~> 4.0"
   s.add_dependency "dogstatsd-ruby"

@@ -41,7 +41,7 @@ class QueryExecutorTest < Test::Unit::TestCase
   end
 
   def test_insert_runs_the_query_if_full
-    dummy_date = Time.new(2008,6,21, 13,30,0)
+    dummy_date = Time.new(2008, 6, 21, 13, 30, 0)
     executor = config_executor 2
 
     @queue.add_operation(begin_transaction_operation)
@@ -196,7 +196,7 @@ class QueryExecutorTest < Test::Unit::TestCase
 
     executor.start
 
-    assert_equal %w(234 456), executor.database[:items].select(:item_id).to_a.map { |i| i[:item_id] }
+    assert_equal %w(234 456), executor.database[:items].select(:item_id).to_a.map { |i| i[:item_id] }.sort
     assert_equal 2, executor.database[:couch_sequence].where(name: 'items').first[:seq]
   end
 
@@ -242,6 +242,16 @@ class QueryExecutorTest < Test::Unit::TestCase
     assert_equal 432, executor.seq
 
     File.delete('test.db')
+  end
+
+  def test_sequence_row_is_created_if_not_found
+    CouchTap::QueryExecutor.new 'items', @queue, CouchTap::Metrics.new, db: 'sqlite://test.db', batch_size: 10
+    CouchTap::QueryExecutor.new 'dummy', @queue, CouchTap::Metrics.new, db: 'sqlite://test.db', batch_size: 10
+
+    db = Sequel.sqlite('test.db')
+    assert_equal 2, db[:couch_sequence].count
+    assert_equal ['items', 'dummy'], db[:couch_sequence].to_a.map { |obj| obj[:name] }
+    assert_equal [0], db[:couch_sequence].to_a.map { |obj| obj[:seq] }.uniq
   end
 
   def test_running_a_batch_clears_the_buffer
@@ -316,7 +326,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     @queue.close
     executor.start
 
-    assert_equal Time.now, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
+    assert_equal Time.now.to_i, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at].to_i
     Timecop.return
   end
 
@@ -371,7 +381,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     connection
   end
 
-  def item_to_insert(top_level, id, updated_at = "Sat, 21 Jun 2008 13:30:00 +0200")
+  def item_to_insert(top_level, id, updated_at = "Sat, 21 Jun 2008 13:30:00 +0000")
     CouchTap::Operations::InsertOperation.new(:items, top_level, :item_id, id, item_id: id,
                                               name: 'dummy', count: rand(), updated_at: updated_at)
   end

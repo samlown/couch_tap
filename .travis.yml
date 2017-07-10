@@ -1,0 +1,18 @@
+language: ruby
+rvm:
+  - 2.3
+  - 2.2
+  - 2.1
+  - 2.0
+services:
+  - couchdb
+matrix:
+  include:
+    - rvm: "2.4"
+      gemfile: gemfiles/Gemfile_2_4
+addons:
+  code_climate:
+    repo_token: 0af68e84758ed2ea8d30808f64fbb6e086d006e0053be32ddbf8d4a7ff5d418b
+
+after_success:
+  - bundle exec codeclimate-test-reporter
