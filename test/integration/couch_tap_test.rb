@@ -43,6 +43,7 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
   end
 
   def test_reprocess_and_go_live
+    sleep 1
     15.times do |i|
       TEST_DB.save_doc(DUMMY_ANALYTIC_EVENT.merge(value: i))
     end
