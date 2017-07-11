@@ -23,7 +23,7 @@ module CouchTap
     end
 
     def set_tag(key, value)
-      @tags.merge(key => value)
+      @tags[key] = value
     end
 
     private
