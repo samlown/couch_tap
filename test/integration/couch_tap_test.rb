@@ -45,12 +45,12 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
   def test_reprocess_and_go_live
     Retryable.retryable(tries: 3,
                         sleep: lambda { |n| 4**n },
+                        exception_cb: lambda { |exc| TEST_DB.create! },
                         on: [RestClient::ResourceNotFound]) do
       15.times do |i|
         TEST_DB.save_doc(DUMMY_ANALYTIC_EVENT.merge(value: i))
       end
     end
-
 
     CouchTap.module_eval(config)
     th = Thread.new { CouchTap.start }
