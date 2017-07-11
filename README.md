@@ -1,4 +1,4 @@
-# Couch Tap [![Build Status](https://travis-ci.org/cabify/couch_tap.svg?branch=master)](https://travis-ci.org/cabify/couch_tap)
+# Couch Tap [![Build Status](https://travis-ci.org/cabify/couch_tap.svg?branch=master)](https://travis-ci.org/cabify/couch_tap) [![Code Climate](https://codeclimate.com/github/cabify/couch_tap/badges/gpa.svg)](https://codeclimate.com/github/cabify/couch_tap) [![Test Coverage](https://codeclimate.com/github/cabify/couch_tap/badges/coverage.svg)](https://codeclimate.com/github/cabify/couch_tap/coverage) [![Issue Count](https://codeclimate.com/github/cabify/couch_tap/badges/issue_count.svg)](https://codeclimate.com/github/cabify/couch_tap)
 
 Utility to listen to a CouchDB changes feed and automatically insert, update,
 or delete rows into a relational database from matching key-value conditions of incoming documents.
