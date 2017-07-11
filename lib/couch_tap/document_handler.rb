@@ -3,7 +3,7 @@ module CouchTap
   class DocumentHandler
 
     attr_reader :changes, :filter, :mode
-    attr_accessor :id, :document
+    attr_accessor :id, :document, :operations_queue
 
     def initialize(changes, filter = {}, &block)
       @changes  = changes
@@ -24,9 +24,9 @@ module CouchTap
     # Handle a table definition.
     def table(name, opts = {}, &block)
       if @mode == :delete
-        Destroyers::Table.new(self, name, opts, &block).execute
+        Destroyers::Table.new(self, name, opts, &block).execute(operations_queue)
       elsif @mode == :insert
-        Builders::Table.new(self, name, opts, &block).execute
+        Builders::Table.new(self, name, opts, &block).execute(operations_queue)
       end
     end
 
@@ -48,26 +48,22 @@ module CouchTap
       document['_id']
     end
 
-    def insert(document)
+    def insert(document, operations_queue)
       @mode = :insert
       self.document = document
+      self.operations_queue = operations_queue 
       instance_eval(&@_block)
     end
 
-    def delete(document)
+    def delete(document, operations_queue)
       @mode = :delete
       self.document = document
+      self.operations_queue = operations_queue 
       instance_eval(&@_block)
     end
 
     def schema(name)
       changes.schema(name)
     end
-
-    def database
-      changes.database
-    end
-
   end
-
 end

@@ -5,7 +5,10 @@ module Destroyers
   class TableTest < Test::Unit::TestCase
 
     def setup
-      @database = create_database
+      @queue = CouchTap::OperationsQueue.new(100_000)
+      @metrics = CouchTap::Metrics.new
+      @executor = CouchTap::QueryExecutor.new('changes', @queue, @metrics, db: 'sqlite:/')
+      @database = initialize_database(@executor.database)
       @changes = mock()
       @changes.stubs(:database).returns(@database)
       @changes.stubs(:schema).returns(CouchTap::Schema.new(@database, :items))
@@ -19,12 +22,12 @@ module Destroyers
       @row = CouchTap::Destroyers::Table.new(@handler, 'items')
 
       assert_not_equal keys, @row.primary_keys
-      assert_equal @row.primary_keys, [:item_id]
+      assert_equal [:item_id], @row.primary_keys
     end
 
     def test_init_override_primary_key
       @row = CouchTap::Destroyers::Table.new(@handler, 'items', :primary_key => 'foo_item_id')
-      assert_equal @row.primary_keys, [:foo_item_id]
+      assert_equal [:foo_item_id], @row.primary_keys
     end
 
     def test_handler
@@ -59,11 +62,11 @@ module Destroyers
     end
 
     def test_execution_deletes_rows
-      @database[:items].insert(:name => "Test Item 1", :item_id => "12345")
-      assert_equal @database[:items].count, 1, "Did not create sample row correctly!"
       @row = CouchTap::Destroyers::Table.new(@handler, :items)
-      @row.execute
-      assert_equal 0, @database[:items].count
+      @row.execute(@queue)
+
+      assert_equal 1, @queue.length
+      assert_equal CouchTap::Operations::DeleteOperation.new(:items, true, :item_id, '12345'), @queue.pop
     end
 
     def test_execution_on_collections
@@ -78,7 +81,7 @@ module Destroyers
         end
       end
       @col.expects(:execute).twice
-      @row.execute
+      @row.execute(@queue)
     end
 
     def test_column_returns_nil
@@ -100,21 +103,20 @@ module Destroyers
 
     protected
 
-    def create_database
-      database = Sequel.sqlite
-      database.create_table :items do
+    def initialize_database(connection)
+      connection.create_table :items do
         String :item_id
         String :name
         Time :created_at
         index :item_id, :unique => true
       end
-      database.create_table :groups do
+      connection.create_table :groups do
         String :group_id
         String :name
         Time :created_at
         index :group_id, :unique => true
       end
-      database
+      connection
     end
   end
 end

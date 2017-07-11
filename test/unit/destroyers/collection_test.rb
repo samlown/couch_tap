@@ -5,6 +5,9 @@ module Destroyers
 
     def setup
       @parent = mock()
+      @queue = CouchTap::OperationsQueue.new(100_000)
+      @metrics = CouchTap::Metrics.new
+      @executor = CouchTap::QueryExecutor.new('changes', @queue, @metrics, db: 'sqlite:/')
     end
 
     def test_initialize_collection
@@ -48,8 +51,7 @@ module Destroyers
         table :invoice_items
       end
       @table.expects(:execute)
-      @collection.execute
+      @collection.execute(@executor)
     end
-
   end
 end

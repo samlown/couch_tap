@@ -1,5 +1,4 @@
-
-# Couch Tap
+# Couch Tap [![Build Status](https://travis-ci.org/cabify/couch_tap.svg?branch=master)](https://travis-ci.org/cabify/couch_tap)
 
 Utility to listen to a CouchDB changes feed and automatically insert, update,
 or delete rows into a relational database from matching key-value conditions of incoming documents.
@@ -23,6 +22,21 @@ is anything other than a delete event, the rows will be re-created with the new 
 This makes things much easier when trying to deal with multi-level documents (i.e. documents of documents)
 and one-to-many table relationships.
 
+## Couch Tap architecture
+
+### Publisher/Subscriber model
+
+CouchTap gem internally uses a queue to decouple the listening to CouchDB changes bit from the persisting to the
+relational system bit. We can say we have two publishers and one consumer from the internal queue.
+
+* Consumer:
+  * `QueryExecutor`: This class buffers whatever operations appear in the queue and, once `batch_size` is reached, it runs all buffered
+    operations against the relational db in a single transaction.
+* Publishers:
+  * `Changes`: Listens for changes from CouchDB's feed and publishes as many operations required for that change to get reflected in the DB.
+    The operations published will depend on the configuration given from the DSL.
+  * `Timer`: Publishes a special operation into the queue to signal that `timeout` seconds have elapsed. This is to avoid records getting delayed
+    if the changes feed takes a while to fill the `QueryExecutor`'s buffer.
 
 ## A Couch Tap Project
 
@@ -32,11 +46,12 @@ document changes to be identified and dealt with.
 The following example attempts to outline most of the key features of the DSL.
 
 ```ruby
-# The couchdb database from which to request the changes feed
-changes "http://user:pass@host:port/invoicing" do
+# The couchdb database from which to request the changes feed and the max time we want our records to wait in the queue
+changes couch_db: "http://user:pass@host:port/invoicing", timeout: 60 do
 
   # Which database should we connect to?
-  database "postgres://user:pass@localhost:5432/invoicing"
+  # How big do you want your batches to be?
+  database db: "postgres://user:pass@localhost:5432/invoicing", batch_size: 10_000
 
   # Simple automated copy, each property's value in the matching CouchDB
   # document will copied to the table field with the same name.
@@ -107,22 +122,30 @@ end
 
 ### changes
 
-Defines which CouchDB database should be used to request the changes feed.
+Hash with two keys:
+
+* `:couch_db`: Defines which CouchDB database should be used to request the changes feed.
+* `:timeout`: Defines the timeout the `Timer` will have. It represents the maximum delay you're happy to accept since a change is received from CouchDB until it appears in your DB
 
 After loading the rest of the configuration, the service will
 connect to the database using Event Machine. As new changes come into the
 system, they will be managed in the background.
 
+### database
 
-### connection
+Hash with two keys:
 
-The Sequel URL used to connect to the destination database. Behind the scenes,
-Couch Tap will check for a table named `couchdb_sequence` that contains a single
-row for the current changes sequence id, much like a migration id typically
+* `:db`: The Sequel URL used to connect to the destination database.
+* `:batch_size`: The number of operations you want to buffer together before sending them to the database.
+
+Behind the scenes, Couch Tap will check for a table named `couchdb_sequence` that contains a single
+row for the current changes sequence id and the last timestamp when something was written, much like a migration id typically
 seen in a Rails database.
 
 As changes are received from CouchDB, the current sequence will be updated to
-match.
+match along with the `last_transaction_at` that will contain either `Time.now` or the maximum `updated_at` inserted value.
+
+`last_transaction_at`'s reason is to let you know how far behind CouchTap is in synchronsing changes.
 
 #### document
 
@@ -179,5 +202,18 @@ Run tests using rake, or individual tests as follows:
 
     rake test TEST=test/unit/changes_test.rb
 
+## Metrics
 
+CouchTap code is instrumented to report basic monitoring metrics to DataDog via `Metrics` class. Specifically reported metrics are:
+
+* `documents_parsed`: Rate of the documents parsed (received from the feed) per time unit.
+* `transactions`: Rate of the transactions run against the database per time unit.
+* `queue.back_pressure`: Number of operations standing in the queue (waiting to be processed) when a transaction is ran.
+* `delete.time`: Latency histogram of the delete time tagged by target database table name.
+* `delete.latency.unit`: Avg time taken to delete a single record within a whole transaction. Tagged by target database table name.
+* `insert.time`: Latency histogram of the insert time tagged by target database table name.
+* `insert.latency.unit`: Avg time taken to insert a single record within a whole transaction. Tagged by target database table name.
+* `transactions.time`: Latency histogram of the whole transaction time.
+* `insertions`: Rate of records written to the database per time unit. Tagged by target database table name.
+* `delay`: How desynchronised the database is in seconds. It is based on the `updated_at` value found on inserted records.
 
