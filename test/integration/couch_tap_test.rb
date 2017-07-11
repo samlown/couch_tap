@@ -1,4 +1,5 @@
 require 'test_helper'
+require 'securerandom'
 
 class CouchTapIntegrationTest < Test::Unit::TestCase
   DB_FILE = "integration.sqlite"
@@ -20,6 +21,13 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
     CouchTap::Changes.const_set("RECONNECT_TIMEOUT", 0.1)
     @db = Sequel.connect("sqlite://#{DB_FILE}")
     setup_db @db
+
+    Retryable.retryable(tries: 4,
+                        sleep: lambda { |n| 4**n },
+                        exception_cb: lambda { |_| TEST_DB.create!; CouchTap.instance_variable_set(:@changes, nil) },
+                        on: [RestClient::ResourceNotFound]) do
+      CouchTap.module_eval(config)
+    end
   end
 
   def teardown
@@ -29,7 +37,6 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
   end
 
   def test_insert_update_delete
-    CouchTap.module_eval(config)
     th = Thread.new { CouchTap.start }
     th.abort_on_exception = true
 
@@ -43,20 +50,18 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
   end
 
   def test_reprocess_and_go_live
-    Retryable.retryable(tries: 3,
-                        sleep: lambda { |n| 4**n },
-                        exception_cb: lambda { |exc| TEST_DB.create! },
-                        on: [RestClient::ResourceNotFound]) do
-      15.times do |i|
-        TEST_DB.save_doc(DUMMY_ANALYTIC_EVENT.merge(value: i))
-      end
+    15.times do |i|
+      TEST_DB.save_doc(DUMMY_ANALYTIC_EVENT.merge("_id" => SecureRandom.uuid))
     end
 
-    CouchTap.module_eval(config)
     th = Thread.new { CouchTap.start }
     th.abort_on_exception = true
 
-    sleep 1
+    retries = 0
+    while (retries += 1) <= 3 && @db[:analytic_events].count < 15
+      sleep 1
+    end
+
     assert_equal 15, @db[:analytic_events].count
 
     CouchTap.stop
@@ -68,7 +73,7 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
 
   def delete_sale_and_insert_analytic_event(sale)
     TEST_DB.delete_doc(sale)
-    TEST_DB.save_doc(DUMMY_ANALYTIC_EVENT.merge(value: Time.now))
+    TEST_DB.save_doc(DUMMY_ANALYTIC_EVENT.merge("_id"  => SecureRandom.uuid))
 
     sleep 1 # Sleep to allow the timer to run
 
@@ -80,7 +85,7 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
   def insert_sale_with_entries
     Timecop.freeze(Time.now.round - 120)
     TEST_DB.save_doc(DUMMY_SALE)
-    sleep 1
+    sleep 1 # Sleep to allow the timer to run
     assert_equal 1, @db[:sales].count
     assert_equal 1, @db[:couch_sequence].where(name: TEST_DB_NAME).first[:seq]
     sale = @db[:sales].first
@@ -95,7 +100,7 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
       doc[:amount] = DUMMY_UPDATE_FIELDS[:amount]
       doc[:entries] = DUMMY_UPDATE_FIELDS[:entries]
     end
-    sleep 0.1
+    sleep 1 # Sleep to allow the timer to run
     assert_equal 1, @db[:sales].count
     assert_equal 2, @db[:couch_sequence].where(name: TEST_DB_NAME).first[:seq]
     expected_updated_sale = DUMMY_SALE.merge(DUMMY_UPDATE_FIELDS)
