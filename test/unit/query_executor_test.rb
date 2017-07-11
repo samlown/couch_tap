@@ -252,6 +252,8 @@ class QueryExecutorTest < Test::Unit::TestCase
     assert_equal 2, db[:couch_sequence].count
     assert_equal ['items', 'dummy'], db[:couch_sequence].to_a.map { |obj| obj[:name] }
     assert_equal [0], db[:couch_sequence].to_a.map { |obj| obj[:seq] }.uniq
+
+    File.delete('test.db')
   end
 
   def test_running_a_batch_clears_the_buffer

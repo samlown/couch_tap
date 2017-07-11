@@ -58,7 +58,6 @@ module CouchTap
     def start
       raise "Cannot work without a DB destination!!" unless @query_executor
       start_consumer
-      start_timer
       prepare_parser
       start_producer
     end
@@ -78,6 +77,7 @@ module CouchTap
       reload_seq_from_db
       @status = RUNNING
       reprocess
+      start_timer
       live_processing
     end
 
@@ -102,6 +102,7 @@ module CouchTap
     end
 
     def reprocess
+      @metrics.set_tag(:feed_mode, "reprocess")
       logger.info "#{source.name}: Reprocessing changes from seq: #{@seq}"
 
       loop do
@@ -120,6 +121,7 @@ module CouchTap
     end
 
     def live_processing
+      @metrics.set_tag(:feed_mode, "live")
       retry_exception = Proc.new do |exception|
         logger.error "#{source.name}: connection failed: #{exception.message}, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
       end
