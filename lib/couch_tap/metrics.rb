@@ -22,6 +22,10 @@ module CouchTap
       @statsd.gauge(prefix_key(key), value, tags: build_tags(tags))
     end
 
+    def set_tag(key, value)
+      @tags.merge(key => value)
+    end
+
     private
 
     def prefix_key(key)
