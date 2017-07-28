@@ -1,3 +1,4 @@
+sudo: required
 language: ruby
 rvm:
   - 2.3
@@ -5,7 +6,10 @@ rvm:
   - 2.1
   - 2.0
 services:
-  - couchdb
+  - docker
+env:
+  - COUCHDB_IMAGE=klaemo/couchdb
+  - COUCHDB_IMAGE=couchdb
 matrix:
   include:
     - rvm: "2.4"
@@ -13,6 +17,7 @@ matrix:
 addons:
   code_climate:
     repo_token: 0af68e84758ed2ea8d30808f64fbb6e086d006e0053be32ddbf8d4a7ff5d418b
-
+before_install:
+- docker run -d -p 5984:5984 $COUCHDB_IMAGE
 after_success:
   - bundle exec codeclimate-test-reporter
