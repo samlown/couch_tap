@@ -36,7 +36,7 @@ class QueryExecutorTest < Test::Unit::TestCase
 
     executor.start
     assert_equal 2, executor.database[:items].count
-    assert_equal 1, executor.database[:couch_sequence].where(name: 'items').first[:seq]
+    assert_equal "1", executor.database[:couch_sequence].where(name: 'items').first[:seq]
     assert_equal nil, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
   end
 
@@ -52,7 +52,7 @@ class QueryExecutorTest < Test::Unit::TestCase
 
     executor.start
     assert_equal 2, executor.database[:items].count
-    assert_equal 1, executor.database[:couch_sequence].where(name: 'items').first[:seq]
+    assert_equal "1", executor.database[:couch_sequence].where(name: 'items').first[:seq]
     assert_equal dummy_date, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
   end
 
@@ -70,7 +70,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     end
 
     assert_equal 0, executor.database[:items].count
-    assert_equal 0, executor.database[:couch_sequence].where(name: 'items').first[:seq]
+    assert_equal "0", executor.database[:couch_sequence].where(name: 'items').first[:seq]
     assert_equal nil, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
   end
 
@@ -133,7 +133,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     end
 
     assert_equal 1, executor.database[:items].count
-    assert_equal 0, executor.database[:couch_sequence].where(name: 'items').first[:seq]
+    assert_equal "0", executor.database[:couch_sequence].where(name: 'items').first[:seq]
   end
 
   def test_create_and_delete_same_row
@@ -149,7 +149,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     executor.start
 
     assert_equal 0, executor.database[:items].where(item_id: 123).count
-    assert_equal 1, executor.database[:couch_sequence].where(name: 'items').first[:seq]
+    assert_equal "1", executor.database[:couch_sequence].where(name: 'items').first[:seq]
     assert_equal dummy_date, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
   end
 
@@ -167,7 +167,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     executor.start
 
     assert_equal 4, executor.database[:items].count
-    assert_equal 1, executor.database[:couch_sequence].where(name: 'items').first[:seq]
+    assert_equal "1", executor.database[:couch_sequence].where(name: 'items').first[:seq]
   end
 
   def test_combined_workload
@@ -197,7 +197,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     executor.start
 
     assert_equal %w(234 456), executor.database[:items].select(:item_id).to_a.map { |i| i[:item_id] }.sort
-    assert_equal 2, executor.database[:couch_sequence].where(name: 'items').first[:seq]
+    assert_equal "2", executor.database[:couch_sequence].where(name: 'items').first[:seq]
   end
 
   def test_delete_nested_items
@@ -225,7 +225,7 @@ class QueryExecutorTest < Test::Unit::TestCase
 
     assert_equal [2], executor.database[:items].select(:count).to_a.map{ |i| i[:count] }
     assert_equal ['another child name'], executor.database[:item_children].select(:child_name).to_a.map{ |g| g[:child_name] }
-    assert_equal 2, executor.database[:couch_sequence].where(name: 'items').first[:seq]
+    assert_equal "2", executor.database[:couch_sequence].where(name: 'items').first[:seq]
   end
 
   def test_sequence_number_defaults_to_zero
@@ -239,7 +239,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     executor.database[:couch_sequence].where(name: 'items').update(seq: 432)
 
     executor = CouchTap::QueryExecutor.new 'items', @queue, CouchTap::Metrics.new, db: 'sqlite://test.db', batch_size: 10
-    assert_equal 432, executor.seq
+    assert_equal "432", executor.seq
 
     File.delete('test.db')
   end
@@ -251,7 +251,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     db = Sequel.sqlite('test.db')
     assert_equal 2, db[:couch_sequence].count
     assert_equal ['items', 'dummy'], db[:couch_sequence].to_a.map { |obj| obj[:name] }
-    assert_equal [0], db[:couch_sequence].to_a.map { |obj| obj[:seq] }.uniq
+    assert_equal ["0"], db[:couch_sequence].to_a.map { |obj| obj[:seq] }.uniq
 
     File.delete('test.db')
   end
@@ -357,7 +357,7 @@ class QueryExecutorTest < Test::Unit::TestCase
     executor.start
 
     assert_equal 2, executor.database[:items].count
-    assert_equal 1, executor.database[:couch_sequence].where(name: 'items').first[:seq]
+    assert_equal "1", executor.database[:couch_sequence].where(name: 'items').first[:seq]
     assert_equal nil, executor.database[:couch_sequence].where(name: 'items').first[:last_transaction_at]
   end
 

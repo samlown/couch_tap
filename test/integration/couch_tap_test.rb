@@ -79,7 +79,7 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
 
     assert_equal 0, @db[:sales].count
     assert_equal 1, @db[:analytic_events].count
-    assert_equal 4, @db[:couch_sequence].where(name: TEST_DB_NAME).first[:seq]
+    assert_equal "4", @db[:couch_sequence].where(name: TEST_DB_NAME).first[:seq]
   end
 
   def insert_sale_with_entries
@@ -87,7 +87,7 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
     TEST_DB.save_doc(DUMMY_SALE)
     sleep 1 # Sleep to allow the timer to run
     assert_equal 1, @db[:sales].count
-    assert_equal 1, @db[:couch_sequence].where(name: TEST_DB_NAME).first[:seq]
+    assert_equal "1", @db[:couch_sequence].where(name: TEST_DB_NAME).first[:seq]
     sale = @db[:sales].first
     assert_equal_sale(DUMMY_SALE, sale)
     Timecop.return
@@ -102,7 +102,7 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
     end
     sleep 1 # Sleep to allow the timer to run
     assert_equal 1, @db[:sales].count
-    assert_equal 2, @db[:couch_sequence].where(name: TEST_DB_NAME).first[:seq]
+    assert_equal "2", @db[:couch_sequence].where(name: TEST_DB_NAME).first[:seq]
     expected_updated_sale = DUMMY_SALE.merge(DUMMY_UPDATE_FIELDS)
     updated_sale = @db[:sales].first
     assert_equal sale_id, updated_sale[:sale_id]
