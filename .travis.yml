@@ -14,9 +14,13 @@ matrix:
   include:
     - rvm: "2.4"
       gemfile: gemfiles/Gemfile_2_4
+      services:
+        - docker
       env: COUCHDB_IMAGE=klaemo/couchdb
     - rvm: "2.4"
       gemfile: gemfiles/Gemfile_2_4
+      services:
+        - docker
       env: COUCHDB_IMAGE=couchdb
 addons:
   code_climate:
