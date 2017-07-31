@@ -8,8 +8,8 @@ rvm:
 services:
   - docker
 env:
-  - COUCHDB_IMAGE=klaemo/couchdb
-  - COUCHDB_IMAGE=couchdb
+  - COUCHDB_IMAGE=klaemo/couchdb # CouchDB 2.0.0
+  - COUCHDB_IMAGE=couchdb        # Couchdb 1.6
 matrix:
   include:
     - rvm: "2.4"

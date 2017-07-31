@@ -169,6 +169,8 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
   end
 
   def assert_seq(expected, found)
+    # Comparing against length of 10 because CouchDB 2 sequences are very long strings as
+    # opposed to CouchDB 1 that are sequential integers.
     if found.length > 10
       assert found.start_with?("#{expected}-")
     else
