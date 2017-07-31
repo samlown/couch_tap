@@ -162,7 +162,7 @@ module CouchTap
       logger.debug "Creating :couch_sequence table..."
       database.create_table :couch_sequence do
         String :name, :primary_key => true
-        Bignum :seq, :default => 0
+        String :seq
         DateTime :created_at
         DateTime :updated_at
         DateTime :last_transaction_at
