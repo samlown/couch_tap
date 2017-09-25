@@ -126,6 +126,7 @@ Hash with two keys:
 
 * `:couch_db`: Defines which CouchDB database should be used to request the changes feed.
 * `:timeout`: Defines the timeout the `Timer` will have. It represents the maximum delay you're happy to accept since a change is received from CouchDB until it appears in your DB
+* `:insecure_ssl`: Boolean value to indicate if you accept insecure SSL certs (i.e: self-signed). Defaults to false.
 
 After loading the rest of the configuration, the service will
 connect to the database using Event Machine. As new changes come into the
