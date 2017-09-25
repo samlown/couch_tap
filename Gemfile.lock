@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    couch_tap (0.10.0)
+    couch_tap (0.11.0)
       activesupport (~> 4.0)
       couchrest (~> 1.1.3)
       dogstatsd-ruby
@@ -37,10 +37,10 @@ GEM
     json (2.1.0)
     metaclass (0.0.1)
     mime-types (1.25.1)
-    minitest (5.10.2)
+    minitest (5.10.3)
     mocha (0.13.3)
       metaclass (~> 0.0.1)
-    multi_json (1.12.1)
+    multi_json (1.12.2)
     power_assert (0.2.2)
     public_suffix (2.0.5)
     rake (10.4.2)
@@ -48,7 +48,7 @@ GEM
       mime-types (~> 1.16)
     retryable (2.0.4)
     safe_yaml (1.0.4)
-    sequel (4.48.0)
+    sequel (5.0.0)
     simplecov (0.14.1)
       docile (~> 1.1.0)
       json (>= 1.8, < 3)
@@ -83,4 +83,4 @@ DEPENDENCIES
   webmock
 
 BUNDLED WITH
-   1.14.6
+   1.15.4

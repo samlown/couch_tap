@@ -23,6 +23,10 @@ module CouchTap
       @metrics  = Metrics.new(couch_db: @source.name)
       @http     = HTTPClient.new
 
+      if opts.fetch(:insecure_ssl, false)
+        @http.ssl_config.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      end
+
       @timeout  = opts.fetch(:timeout, 60)
 
       logger.info "Connected to CouchDB: #{@source.info['db_name']}"
