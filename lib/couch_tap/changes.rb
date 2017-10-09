@@ -97,6 +97,9 @@ module CouchTap
       # Authenticate?
       if uri.user.present? && uri.password.present?
         @http.set_auth(source.root, uri.user, uri.password)
+        # If we don't force auth, the client will wait for the 401 error before sending the
+        # auth headers. Force basic auth to reduce noise.
+        @http.force_basic_auth = true
       end
       url
     end
