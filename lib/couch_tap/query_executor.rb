@@ -122,11 +122,19 @@ module CouchTap
         end
       end
       @metrics.histogram('transactions.time', total_timing)
-      logger.info "#{(@buffer.size < @batch_size) ? 'TIMED ' : '' }Batch applied at #{@name} in #{total_timing} ms. Sequence: #{seq}"
+      logger.info "#{(@buffer.size < @batch_size) ? 'TIMED ' : '' }Batch applied at #{@name} in #{total_timing} ms. Sequence: #{pretty_seq(seq)}"
       logger.info "Summary: #{batch_summary}"
 
       logger.debug "Clearing buffer"
       @buffer.clear
+    end
+
+    def pretty_seq(seq)
+      if seq.to_s.index('-')
+        seq.split('-').first + '-...'
+      else
+        seq
+      end
     end
 
     def measure(&block)
