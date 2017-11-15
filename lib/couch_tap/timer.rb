@@ -1,4 +1,7 @@
 
+require 'logging'
+
+
 module CouchTap
   class Timer
     IDLE_STATUS = 0
@@ -40,7 +43,7 @@ module CouchTap
     private
 
     def logger
-      CouchTap.logger
+      Logging.logger[self]
     end
   end
 end

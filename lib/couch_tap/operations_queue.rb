@@ -1,4 +1,7 @@
 
+require 'logging'
+
+
 module CouchTap
   class OperationsQueue
     extend Forwardable
@@ -26,7 +29,7 @@ module CouchTap
     private
 
     def logger
-      CouchTap.logger
+      Logging.logger[self]
     end
   end
 end
