@@ -1,4 +1,5 @@
 require "retryable"
+require 'logging'
 
 module CouchTap
   class Changes
@@ -171,12 +172,15 @@ module CouchTap
         @operations_queue.add_operation Operations::BeginTransactionOperation.new
         if row['deleted']
           # Delete all the entries
+          logger.debug "Document with id #{id} will be permanently deleted"
           handlers.each{ |handler| handler.delete({ '_id' => id }, @operations_queue) }
         else
           doc = row['doc']
           find_document_handlers(doc).each do |handler|
-            # Delete all previous entries of doc, then re-create
+            # Delete all previous entries of doc, then re-creata
+            logger.debug doc.merge("message" => "Deleting document with id #{id} (recreation should follow)")
             handler.delete(doc, @operations_queue)
+            logger.debug doc.merge("message" => "Inserting document with id #{id}")
             handler.insert(doc, @operations_queue)
           end
         end
@@ -205,7 +209,7 @@ module CouchTap
     end
 
     def logger
-      CouchTap.logger
+      Logging.logger[self]
     end
   end
 end

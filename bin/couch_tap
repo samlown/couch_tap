@@ -2,9 +2,13 @@
 
 require 'rubygems'
 require 'couch_tap'
+require 'couch_tap/log'
+
+CouchTap::LogFactory.config_loggers()
+logger = Logging.logger['Start']
 
 # Take in the arguments for the configuration file and try to run it
-CouchTap.logger.info "Reading configuration: #{ARGV[0]}"
+logger.info "Reading configuration: #{ARGV[0]}"
 
 CouchTap.module_eval(File.open(ARGV[0]).read)
 

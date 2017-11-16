@@ -1,5 +1,6 @@
 
 require 'couch_tap/query_buffer'
+require 'logging'
 
 module CouchTap
   class QueryExecutor
@@ -178,7 +179,7 @@ module CouchTap
     end
 
     def logger
-      CouchTap.logger
+      Logging.logger[self]
     end
   end
 end
