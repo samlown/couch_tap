@@ -1,5 +1,6 @@
 require "retryable"
 require 'logging'
+require 'json'
 
 module CouchTap
   class Changes
@@ -178,9 +179,10 @@ module CouchTap
           doc = row['doc']
           find_document_handlers(doc).each do |handler|
             # Delete all previous entries of doc, then re-creata
-            logger.debug doc.merge("message" => "Deleting document with id #{id} (recreation should follow)")
+            # Use id, stringified doc and message as sole indices for the logging backend
+            logger.debug ({"id" => id, "doc" => doc.to_json, "message" => "Deleting document with id #{id} (recreation should follow)"})
             handler.delete(doc, @operations_queue)
-            logger.debug doc.merge("message" => "Inserting document with id #{id}")
+            logger.debug ({"id" => id, "doc" => doc.to_json, "message" => "Inserting document with id #{id}"})
             handler.insert(doc, @operations_queue)
           end
         end
