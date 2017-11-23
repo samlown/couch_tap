@@ -1,5 +1,6 @@
 
 require 'logging/logstash'
+require 'couch_tap/util'
 
 module CouchTap
   module LogFactory
