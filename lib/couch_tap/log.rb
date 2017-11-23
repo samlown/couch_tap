@@ -1,5 +1,4 @@
 
-#require 'logging'
 require 'logging/logstash'
 
 module CouchTap
@@ -21,7 +20,7 @@ module CouchTap
       logstash_host = ENV.fetch('LOGSTASH_HOST', 'localhost')
       logstash_port = ENV.fetch('LOGSTASH_PORT', '5016')
       level = parse_level(ENV.fetch('LOGSTASH_LOG_LEVEL', 'debug'))
-      ssl_enable = parse_level(ENV.fetch('LOGSTASH_SSL_ENABLE', 'debug'))
+      ssl_enable = Util.str2bool(ENV.fetch('LOGSTASH_SSL_ENABLE', true))
       Logging.appenders.logstash('logstash', 
                                  :level => level,
                                  :layout => LOG_LAYOUT,
