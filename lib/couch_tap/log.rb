@@ -11,7 +11,7 @@ module CouchTap
                                :level => level, 
                                :layout => LOG_LAYOUT)
       Logging.logger.root.add_appenders('stdout')
-      if ENV.fetch('USE_LOGSTASH', 'false') == "true"
+      if Util.str2bool(ENV.fetch('USE_LOGSTASH', false)
         configure_logstash()
       end
     end
