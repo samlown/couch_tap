@@ -4,7 +4,6 @@ require 'sequel'
 require 'couchrest'
 require 'yajl'
 require 'httpclient'
-require 'logger'
 require 'active_support/inflector'
 require 'active_support/core_ext/object/blank'
 
@@ -16,7 +15,16 @@ require 'couch_tap/builders/collection'
 require 'couch_tap/builders/table'
 require 'couch_tap/destroyers/collection'
 require 'couch_tap/destroyers/table'
-
+require 'couch_tap/query_executor'
+require 'couch_tap/timer'
+require 'couch_tap/operations/insert_operation'
+require 'couch_tap/operations/delete_operation'
+require 'couch_tap/operations/begin_transaction_operation'
+require 'couch_tap/operations/end_transaction_operation'
+require 'couch_tap/operations/close_queue_operation'
+require 'couch_tap/operations/timer_fired_signal'
+require 'couch_tap/operations_queue'
+require 'couch_tap/metrics'
 
 module CouchTap
   extend self
@@ -28,23 +36,17 @@ module CouchTap
   def start
     threads = []
     @changes.each do |changes|
-      threads << Thread.new(changes) do |c|
+      t = Thread.new(changes) do |c|
         c.start
       end
+      t.abort_on_exception = true
+      threads << t
     end
     threads.each {|thr| thr.join}
   end
 
-  # Provide some way to handle messages
-  def logger
-    @logger ||= prepare_logger
+  def stop
+    @changes.each { |c| c.stop }
   end
-
-  def prepare_logger
-    log = Logger.new(STDOUT)
-    log.level = Logger::INFO
-    log
-  end
-
 end
 
