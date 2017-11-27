@@ -21,6 +21,8 @@ Gem::Specification.new do |s|
   s.add_dependency "activesupport", "~> 4.0"
   s.add_dependency "dogstatsd-ruby"
   s.add_dependency "retryable"
+  s.add_dependency "logging"
+  s.add_dependency "logging-logstash"
   s.add_development_dependency "mocha"
   s.add_development_dependency "sqlite3"
   s.add_development_dependency "test-unit"

@@ -4,7 +4,6 @@ require 'sequel'
 require 'couchrest'
 require 'yajl'
 require 'httpclient'
-require 'logger'
 require 'active_support/inflector'
 require 'active_support/core_ext/object/blank'
 
@@ -17,7 +16,6 @@ require 'couch_tap/builders/table'
 require 'couch_tap/destroyers/collection'
 require 'couch_tap/destroyers/table'
 require 'couch_tap/query_executor'
-require 'couch_tap/logging'
 require 'couch_tap/timer'
 require 'couch_tap/operations/insert_operation'
 require 'couch_tap/operations/delete_operation'
@@ -30,7 +28,6 @@ require 'couch_tap/metrics'
 
 module CouchTap
   extend self
-  extend Logging
 
   def changes(database, &block)
     (@changes ||= []) << Changes.new(database, &block)

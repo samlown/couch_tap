@@ -1,11 +1,13 @@
 PATH
   remote: .
   specs:
-    couch_tap (0.12.1)
+    couch_tap (0.12.2)
       activesupport (~> 4.0)
       couchrest (~> 1.1.3)
       dogstatsd-ruby
       httpclient (~> 2.6)
+      logging
+      logging-logstash
       retryable
       sequel (>= 4.36.0)
       yajl-ruby
@@ -18,11 +20,12 @@ GEM
       minitest (~> 5.1)
       thread_safe (~> 0.3, >= 0.3.4)
       tzinfo (~> 1.1)
-    addressable (2.5.1)
-      public_suffix (~> 2.0, >= 2.0.2)
+    addressable (2.5.2)
+      public_suffix (>= 2.0.2, < 4.0)
     byebug (9.0.6)
-    codeclimate-test-reporter (1.0.7)
-      simplecov
+    codeclimate-test-reporter (1.0.8)
+      simplecov (<= 0.13)
+    concurrent-ruby (1.0.5)
     couchrest (1.1.3)
       mime-types (~> 1.15)
       multi_json (~> 1.0)
@@ -30,42 +33,55 @@ GEM
     crack (0.4.3)
       safe_yaml (~> 1.0.0)
     docile (1.1.5)
-    dogstatsd-ruby (3.0.0)
-    hashdiff (0.3.2)
+    dogstatsd-ruby (3.1.0)
+    hashdiff (0.3.7)
     httpclient (2.8.3)
-    i18n (0.8.6)
+    i18n (0.9.1)
+      concurrent-ruby (~> 1.0)
     json (2.1.0)
-    metaclass (0.0.1)
+    little-plugger (1.1.4)
+    logging (1.8.2)
+      little-plugger (>= 1.1.3)
+      multi_json (>= 1.8.4)
+    logging-logstash (0.1.0)
+      logging (~> 1.8.1)
+      logstash-logger (~> 0.7.0)
+    logstash-event (1.2.02)
+    logstash-logger (0.7.0)
+      logstash-event (~> 1.2)
+      stud
+    metaclass (0.0.4)
     mime-types (1.25.1)
     minitest (5.10.3)
-    mocha (0.13.3)
+    mocha (1.3.0)
       metaclass (~> 0.0.1)
     multi_json (1.12.2)
-    power_assert (0.2.2)
+    power_assert (1.1.1)
     public_suffix (2.0.5)
-    rake (10.4.2)
+    rake (12.3.0)
     rest-client (1.6.9)
       mime-types (~> 1.16)
     retryable (2.0.4)
     safe_yaml (1.0.4)
-    sequel (5.1.0)
-    simplecov (0.14.1)
+    sequel (5.2.0)
+    simplecov (0.13.0)
       docile (~> 1.1.0)
       json (>= 1.8, < 3)
       simplecov-html (~> 0.10.0)
-    simplecov-html (0.10.1)
-    sqlite3 (1.3.11)
-    test-unit (3.0.8)
+    simplecov-html (0.10.2)
+    sqlite3 (1.3.13)
+    stud (0.0.23)
+    test-unit (3.2.6)
       power_assert
     thread_safe (0.3.6)
-    timecop (0.8.1)
-    tzinfo (1.2.3)
+    timecop (0.9.1)
+    tzinfo (1.2.4)
       thread_safe (~> 0.1)
-    webmock (3.0.1)
+    webmock (3.1.0)
       addressable (>= 2.3.6)
       crack (>= 0.3.2)
       hashdiff
-    yajl-ruby (1.3.0)
+    yajl-ruby (1.3.1)
 
 PLATFORMS
   ruby
@@ -75,6 +91,7 @@ DEPENDENCIES
   codeclimate-test-reporter (~> 1.0.0)
   couch_tap!
   mocha
+  public_suffix (= 2.0.5)
   rake
   simplecov
   sqlite3
@@ -83,4 +100,4 @@ DEPENDENCIES
   webmock
 
 BUNDLED WITH
-   1.15.4
+   1.16.0
