@@ -28,9 +28,7 @@ module CouchTap
                                  :level => level,
                                  :layout => LOG_LAYOUT,
                                  :ssl_enable => ssl_enable,
-                                 :type => "tcp",
-                                 :host => logstash_host,
-                                 :port => logstash_port)
+                                 :uri => "tcp://#{logstash_host}:#{logstash_port}")
       Logging.logger.root.add_appenders('logstash')
     end
 

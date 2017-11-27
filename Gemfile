@@ -5,3 +5,4 @@ gem "codeclimate-test-reporter", "~> 1.0.0"
 gem 'rake'
 gem 'public_suffix', '2.0.5'
 gem 'logging-logstash', '0.2.0', git: 'https://github.com/cabify/logging-logstash.git'
+gem 'byebug', '9.0.6'

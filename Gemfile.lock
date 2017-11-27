@@ -1,10 +1,10 @@
 GIT
-  remote: https://github.com/Omhen/logging-logstash.git
-  revision: c4f1ca2d9accdd3d38aba08b424272df4251f504
+  remote: https://github.com/cabify/logging-logstash.git
+  revision: 7017f8962279f12267e2105c5b22f63301db7d5b
   specs:
     logging-logstash (0.2.0)
       logging (>= 1.8.1)
-      logstash-logger (>= 0.7.0)
+      logstash-logger (= 0.10.3)
 
 PATH
   remote: .
@@ -29,7 +29,7 @@ GEM
       tzinfo (~> 1.1)
     addressable (2.5.2)
       public_suffix (>= 2.0.2, < 4.0)
-    byebug (9.1.0)
+    byebug (9.0.6)
     codeclimate-test-reporter (1.0.8)
       simplecov (<= 0.13)
     concurrent-ruby (1.0.5)
@@ -51,8 +51,9 @@ GEM
       little-plugger (~> 1.1)
       multi_json (~> 1.10)
     logstash-event (1.2.02)
-    logstash-logger (0.25.1)
+    logstash-logger (0.10.3)
       logstash-event (~> 1.2)
+      stud
     metaclass (0.0.4)
     mime-types (1.25.1)
     minitest (5.10.3)
@@ -73,6 +74,7 @@ GEM
       simplecov-html (~> 0.10.0)
     simplecov-html (0.10.2)
     sqlite3 (1.3.13)
+    stud (0.0.23)
     test-unit (3.2.6)
       power_assert
     thread_safe (0.3.6)
@@ -89,7 +91,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  byebug
+  byebug (= 9.0.6)
   codeclimate-test-reporter (~> 1.0.0)
   couch_tap!
   logging-logstash (= 0.2.0)!
