@@ -1,3 +1,11 @@
+GIT
+  remote: https://github.com/Omhen/logging-logstash.git
+  revision: c4f1ca2d9accdd3d38aba08b424272df4251f504
+  specs:
+    logging-logstash (0.2.0)
+      logging (>= 1.8.1)
+      logstash-logger (>= 0.7.0)
+
 PATH
   remote: .
   specs:
@@ -7,7 +15,6 @@ PATH
       dogstatsd-ruby
       httpclient (~> 2.6)
       logging
-      logging-logstash
       retryable
       sequel (>= 4.36.0)
       yajl-ruby
@@ -22,7 +29,7 @@ GEM
       tzinfo (~> 1.1)
     addressable (2.5.2)
       public_suffix (>= 2.0.2, < 4.0)
-    byebug (9.0.6)
+    byebug (9.1.0)
     codeclimate-test-reporter (1.0.8)
       simplecov (<= 0.13)
     concurrent-ruby (1.0.5)
@@ -40,16 +47,12 @@ GEM
       concurrent-ruby (~> 1.0)
     json (2.1.0)
     little-plugger (1.1.4)
-    logging (1.8.2)
-      little-plugger (>= 1.1.3)
-      multi_json (>= 1.8.4)
-    logging-logstash (0.1.0)
-      logging (~> 1.8.1)
-      logstash-logger (~> 0.7.0)
+    logging (2.2.2)
+      little-plugger (~> 1.1)
+      multi_json (~> 1.10)
     logstash-event (1.2.02)
-    logstash-logger (0.7.0)
+    logstash-logger (0.25.1)
       logstash-event (~> 1.2)
-      stud
     metaclass (0.0.4)
     mime-types (1.25.1)
     minitest (5.10.3)
@@ -70,14 +73,13 @@ GEM
       simplecov-html (~> 0.10.0)
     simplecov-html (0.10.2)
     sqlite3 (1.3.13)
-    stud (0.0.23)
     test-unit (3.2.6)
       power_assert
     thread_safe (0.3.6)
     timecop (0.9.1)
     tzinfo (1.2.4)
       thread_safe (~> 0.1)
-    webmock (3.1.0)
+    webmock (3.1.1)
       addressable (>= 2.3.6)
       crack (>= 0.3.2)
       hashdiff
@@ -90,6 +92,7 @@ DEPENDENCIES
   byebug
   codeclimate-test-reporter (~> 1.0.0)
   couch_tap!
+  logging-logstash (= 0.2.0)!
   mocha
   public_suffix (= 2.0.5)
   rake
