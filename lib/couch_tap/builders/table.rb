@@ -1,3 +1,4 @@
+require 'logging'
 
 module CouchTap
 
@@ -78,7 +79,11 @@ module CouchTap
       def execute(operations_queue)
         # Insert the record and prepare ID for sub-tables
         operations_queue.add_operation(CouchTap::Operations::InsertOperation.new(name, parent.is_a?(DocumentHandler), primary_keys.first, id, attributes))
-
+        
+        logger.debug({"id" => handler.id,
+                      "action" => "add_operation",
+                      "table" => name,
+                      "thread" => Thread.current[:name]})
         # TODO remove this?
         set_attribute(primary_keys.last, id) unless id.blank?
 
@@ -142,9 +147,11 @@ module CouchTap
         end
         attributes[name] = value
       end
-
+      
+      def logger
+        Logging.logger[self]
+      end
     end
-
   end
 end
 

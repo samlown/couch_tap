@@ -22,6 +22,7 @@ module CouchTap
       @status = RUNNING_STATUS
       logger.debug "Timer starting!"
       @thread = Thread.new do
+        Thread.current[:name] = "TIMER"
         begin
           sleep @timeout
           if @status == RUNNING_STATUS

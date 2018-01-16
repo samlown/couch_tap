@@ -1,3 +1,5 @@
+require 'logging'
+
 module CouchTap
 
   class DocumentHandler
@@ -53,6 +55,11 @@ module CouchTap
       self.document = document
       self.operations_queue = operations_queue 
       instance_eval(&@_block)
+      logger.debug("id" => document['_id'],
+                   "action" => "dsl_insert",
+                   "message" => "DSL insert successfully processed for doc",
+                   "doc_type" => document['type'],
+                   "thread" => Thread.current[:name])
     end
 
     def delete(document, operations_queue)
@@ -60,10 +67,19 @@ module CouchTap
       self.document = document
       self.operations_queue = operations_queue 
       instance_eval(&@_block)
+      logger.debug("id" => document['_id'],
+                   "action" => "dsl_delete",
+                   "message" => "DSL delete successfully processed for doc",
+                   "doc_type" => document['type'],
+                   "thread" => Thread.current[:name])
     end
 
     def schema(name)
       changes.schema(name)
+    end
+
+    def logger
+      Logging.logger[self]
     end
   end
 end

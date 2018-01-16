@@ -80,6 +80,7 @@ module CouchTap
     end
 
     def start_producer
+      Thread.current[:name] = "PRODUCER"
       reload_seq_from_db
       @status = RUNNING
       reprocess
@@ -115,7 +116,7 @@ module CouchTap
       logger.info "#{source.name}: Reprocessing changes from seq: #{@seq}"
 
       loop do
-      # Make sure the request has the latest sequence
+        # Make sure the request has the latest sequence
         query = { since: @seq, feed: 'normal', heartbeat: COUCHDB_HEARTBEAT * 1000, include_docs: true, limit: @batch_size }
 
         logger.debug "#{source.name}: Reprocessing changes from seq #{@seq} limit: #{@batch_size}"
@@ -139,23 +140,23 @@ module CouchTap
                           exception_cb: retry_exception,
                           on: [HTTPClient::TimeoutError, HTTPClient::BadResponseError]) do
 
-        logger.info "#{source.name}: listening to changes feed from seq: #{@seq}"
+                            logger.info "#{source.name}: listening to changes feed from seq: #{@seq}"
 
-        while @status == RUNNING do
-          # Make sure the request has the latest sequence
-          query = { since: @seq, feed: 'continuous', heartbeat: COUCHDB_HEARTBEAT * 1000, include_docs: true }
+                            while @status == RUNNING do
+                              # Make sure the request has the latest sequence
+                              query = { since: @seq, feed: 'continuous', heartbeat: COUCHDB_HEARTBEAT * 1000, include_docs: true }
 
-          # Perform the actual request for chunked content
-          @http.get_content(changes_url, query) do |chunk|
-            # logger.debug chunk.strip
-            @parser << chunk
-            break unless @status == RUNNING
-          end
-          logger.error "#{source.name}: connection ended, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
-          sleep RECONNECT_TIMEOUT
-          reload_seq_from_db
-        end
-      end
+                              # Perform the actual request for chunked content
+                              @http.get_content(changes_url, query) do |chunk|
+                                # logger.debug chunk.strip
+                                @parser << chunk
+                                break unless @status == RUNNING
+                              end
+                              logger.error "#{source.name}: connection ended, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
+                              sleep RECONNECT_TIMEOUT
+                              reload_seq_from_db
+                            end
+                          end
     end
 
     def prepare_parser
@@ -173,27 +174,47 @@ module CouchTap
         @operations_queue.add_operation Operations::BeginTransactionOperation.new
         if row['deleted']
           # Delete all the entries
-          logger.debug "Document with id #{id} will be permanently deleted"
+          logger.debug({"id" => id,
+                        "action" => "purge",
+                        "message" => "Document with id #{id} will be permanently deleted",
+                        "thread" => Thread.current[:name] })
           handlers.each{ |handler| handler.delete({ '_id' => id }, @operations_queue) }
         else
           doc = row['doc']
-          find_document_handlers(doc).each do |handler|
+          document_handlers = find_document_handlers(doc)
+          if document_handlers.empty?
+            logger.warn("No handlers for document with type #{doc['type']}")
+          end
+          document_handlers.each do |handler|
             # Delete all previous entries of doc, then re-creata
             # Use id, stringified doc and message as sole indices for the logging backend
-            logger.debug({"id" => id, "doc" => doc.to_json, "message" => "Deleting document with id #{id} (recreation should follow)"})
+            logger.debug({"id" => id, 
+                          "rev" => doc['_rev'],
+                          "doc_type" => doc['type'],
+                          "action" => "delete",
+                          "message" => "Deleting document with id #{id} (recreation should follow)",
+                          "thread" => Thread.current[:name]
+            })
             handler.delete(doc, @operations_queue)
-            logger.debug({"id" => id, "doc" => doc.to_json, "message" => "Inserting document with id #{id}"})
+            logger.debug({"id" => id, 
+                          "rev" => doc['_rev'],
+                          "doc_type" => doc['type'],
+                          "action" => "insert",
+                          "message" => "Inserting document with id #{id}",
+                          "thread" => Thread.current[:name]
+            })
             handler.insert(doc, @operations_queue)
           end
         end
         @operations_queue.add_operation Operations::EndTransactionOperation.new(row['seq'])
       elsif row['last_seq']
-        logger.info "#{source.name}: received last seq: #{row['last_seq']}"
+        logger.warn "#{source.name}: received last seq: #{row['last_seq']}"
       end
     end
 
     def start_consumer
       @consumer = Thread.new do
+        Thread.current[:name] = "CONSUMER"
         @query_executor.start
       end
       @consumer.abort_on_exception = true
