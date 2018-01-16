@@ -94,7 +94,7 @@ module CouchTap
     protected
 
     def changes_url
-      url = File.join(source.root, '_changes')
+      url = File.join(source.root.to_s, '_changes')
       uri = URI.parse(url)
       # Authenticate?
       if uri.user.present? && uri.password.present?

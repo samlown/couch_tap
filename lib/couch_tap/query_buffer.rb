@@ -8,6 +8,7 @@ module CouchTap
     def initialize()
       @buffer = {}
       @size = 0
+      @newest_updated_at = nil
     end
 
     def insert(operation)

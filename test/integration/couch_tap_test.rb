@@ -25,7 +25,7 @@ class CouchTapIntegrationTest < Test::Unit::TestCase
     Retryable.retryable(tries: 4,
                         sleep: lambda { |n| 4**n },
                         exception_cb: lambda { |_| TEST_DB.create!; CouchTap.instance_variable_set(:@changes, nil) },
-                        on: [RestClient::ResourceNotFound]) do
+                        on: [CouchRest::NotFound]) do
       CouchTap.module_eval(config)
     end
   end
