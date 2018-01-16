@@ -9,7 +9,7 @@ GIT
 PATH
   remote: .
   specs:
-    couch_tap (0.12.2)
+    couch_tap (0.12.3)
       activesupport (~> 4.0)
       couchrest (~> 2.0)
       dogstatsd-ruby
