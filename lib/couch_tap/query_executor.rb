@@ -49,8 +49,12 @@ module CouchTap
                         "thread" => Thread.current[:name]})
         when Operations::BeginTransactionOperation
           @transaction_open = true
+          logger.debug({"action" => "begin_transaction",
+                        "thread" => Thread.current[:name]})
         when Operations::EndTransactionOperation
           @transaction_open = false
+          logger.debug({"action" => "end_transaction",
+                        "thread" => Thread.current[:name]})
           @seq = op.sequence
           if @buffer.size >= @batch_size || @timer_fired
             run_transaction(@seq)
