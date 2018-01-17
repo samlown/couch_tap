@@ -59,27 +59,27 @@ module CouchTap
 
     def insert(primary_key, id, data)
       composite_key = build_composite_key(primary_key, id)
-      if @top_level
-        @inserts[composite_key] = [data]
-      else
-        (@inserts[composite_key] ||= []) << data
-      end
       logger.debug({"id" => id,
                     "action" => "entity_insert",
                     "table" => @name,
                     "composite_key" => composite_key,
                     "thread" => Thread.current[:name]})
+      if @top_level
+        @inserts[composite_key] = [data]
+      else
+        (@inserts[composite_key] ||= []) << data
+      end
     end
 
     def delete(key, id)
       (@deletes[key] ||= Set.new) << id
       composite_key = build_composite_key(key, id)
-      @inserts.delete(composite_key)
       logger.debug({"id" => id,
                     "action" => "entity_delete",
                     "table" => @name,
                     "composite_key" => composite_key,
                     "thread" => Thread.current[:name]})
+      @inserts.delete(composite_key)
     end
 
     def deleting_keys
