@@ -140,23 +140,23 @@ module CouchTap
                           exception_cb: retry_exception,
                           on: [HTTPClient::TimeoutError, HTTPClient::BadResponseError]) do
 
-                            logger.info "#{source.name}: listening to changes feed from seq: #{@seq}"
+        logger.info "#{source.name}: listening to changes feed from seq: #{@seq}"
 
-                            while @status == RUNNING do
-                              # Make sure the request has the latest sequence
-                              query = { since: @seq, feed: 'continuous', heartbeat: COUCHDB_HEARTBEAT * 1000, include_docs: true }
+        while @status == RUNNING do
+          # Make sure the request has the latest sequence
+          query = { since: @seq, feed: 'continuous', heartbeat: COUCHDB_HEARTBEAT * 1000, include_docs: true }
 
-                              # Perform the actual request for chunked content
-                              @http.get_content(changes_url, query) do |chunk|
-                                # logger.debug chunk.strip
-                                @parser << chunk
-                                break unless @status == RUNNING
-                              end
-                              logger.error "#{source.name}: connection ended, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
-                              sleep RECONNECT_TIMEOUT
-                              reload_seq_from_db
-                            end
-                          end
+          # Perform the actual request for chunked content
+          @http.get_content(changes_url, query) do |chunk|
+            # logger.debug chunk.strip
+            @parser << chunk
+            break unless @status == RUNNING
+          end
+          logger.error "#{source.name}: connection ended, attempting to reconnect in #{RECONNECT_TIMEOUT}s..."
+          sleep RECONNECT_TIMEOUT
+          reload_seq_from_db
+        end
+      end
     end
 
     def prepare_parser
