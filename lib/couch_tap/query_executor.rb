@@ -37,12 +37,24 @@ module CouchTap
         case op
         when Operations::InsertOperation
           @buffer.insert(op)
+          logger.debug({"id" => op.id,
+                        "action" => "buffer_insert",
+                        "table" => op.table,
+                        "thread" => Thread.current[:name]})
         when Operations::DeleteOperation
           @buffer.delete(op)
+          logger.debug({"id" => op.id,
+                        "action" => "buffer_delete",
+                        "table" => op.table,
+                        "thread" => Thread.current[:name]})
         when Operations::BeginTransactionOperation
           @transaction_open = true
+          logger.debug({"action" => "begin_transaction",
+                        "thread" => Thread.current[:name]})
         when Operations::EndTransactionOperation
           @transaction_open = false
+          logger.debug({"action" => "end_transaction",
+                        "thread" => Thread.current[:name]})
           @seq = op.sequence
           if @buffer.size >= @batch_size || @timer_fired
             run_transaction(@seq)
@@ -89,7 +101,10 @@ module CouchTap
       total_timing = measure do
         @database.transaction do
           @buffer.each do |entity|
-           logger.debug "Processing queries for #{entity.name}"
+            logger.debug({"action" => "execute_batch",
+                          "message" => "Processing queries for #{entity.name}",
+                          "table" => entity.name,
+                          "thread" => Thread.current[:name]})
             batch_summary[entity.name] ||= []
             if entity.any_delete?
               entity.deleting_keys.each do |key|

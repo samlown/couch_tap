@@ -1,15 +1,15 @@
 GIT
   remote: https://github.com/cabify/logging-logstash.git
-  revision: 7017f8962279f12267e2105c5b22f63301db7d5b
+  revision: 86ec96cad930aab8a9dd0a612d12494186ffd7cf
   specs:
-    logging-logstash (0.2.0)
+    logging-logstash (0.2.1)
       logging (>= 1.8.1)
       logstash-logger (= 0.10.3)
 
 PATH
   remote: .
   specs:
-    couch_tap (0.12.2)
+    couch_tap (0.12.3)
       activesupport (~> 4.0)
       couchrest (~> 2.0)
       dogstatsd-ruby
@@ -94,7 +94,7 @@ DEPENDENCIES
   byebug (= 9.0.6)
   codeclimate-test-reporter (~> 1.0.0)
   couch_tap!
-  logging-logstash (= 0.2.0)!
+  logging-logstash (= 0.2.1)!
   mocha
   public_suffix (= 2.0.5)
   rake

@@ -1,3 +1,4 @@
+require 'logging'
 
 module CouchTap
   class QueryBuffer
@@ -58,6 +59,11 @@ module CouchTap
 
     def insert(primary_key, id, data)
       composite_key = build_composite_key(primary_key, id)
+      logger.debug({"id" => id,
+                    "action" => "entity_insert",
+                    "table" => @name,
+                    "composite_key" => composite_key,
+                    "thread" => Thread.current[:name]})
       if @top_level
         @inserts[composite_key] = [data]
       else
@@ -67,7 +73,13 @@ module CouchTap
 
     def delete(key, id)
       (@deletes[key] ||= Set.new) << id
-      @inserts.delete(build_composite_key(key, id))
+      composite_key = build_composite_key(key, id)
+      logger.debug({"id" => id,
+                    "action" => "entity_delete",
+                    "table" => @name,
+                    "composite_key" => composite_key,
+                    "thread" => Thread.current[:name]})
+      @inserts.delete(composite_key)
     end
 
     def deleting_keys
@@ -90,6 +102,10 @@ module CouchTap
 
     def any_insert?
       @inserts.any?
+    end
+
+    def logger
+      Logging.logger[self]
     end
 
     private
