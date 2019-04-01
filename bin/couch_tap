@@ -3,6 +3,7 @@
 require 'rubygems'
 require 'couch_tap'
 require 'couch_tap/log_configurator'
+require 'byebug'
 
 CouchTap::LogConfigurator.config_loggers()
 logger = Logging.logger['Start']
