@@ -11,7 +11,7 @@ PATH
   specs:
     couch_tap (0.12.3)
       activesupport (~> 4.0)
-      byebug (= 11.0.1)
+      byebug (~> 11.0)
       couchrest (~> 2.0)
       dogstatsd-ruby
       httpclient (~> 2.6)
@@ -92,7 +92,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  byebug (= 11.0.1)
+  byebug (~> 11.0)
   codeclimate-test-reporter (~> 1.0.0)
   couch_tap!
   logging-logstash (= 0.2.1)!
