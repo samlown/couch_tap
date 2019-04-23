@@ -1,22 +1,14 @@
 sudo: required
 language: ruby
 rvm:
+  - 2.4
   - 2.3
-  - 2.2
-  - 2.1
-  - 2.0
 services:
   - docker
 env:
-  - COUCHDB_IMAGE=klaemo/couchdb # CouchDB 2.0.0
   - COUCHDB_IMAGE=couchdb        # Couchdb 1.6
 matrix:
   include:
-    - rvm: "2.4"
-      gemfile: gemfiles/Gemfile_2_4
-      services:
-        - docker
-      env: COUCHDB_IMAGE=klaemo/couchdb
     - rvm: "2.4"
       gemfile: gemfiles/Gemfile_2_4
       services:
