@@ -4,6 +4,9 @@ require 'test_helper'
 class DocumentHandlerTest < Test::Unit::TestCase
 
   def test_init
+    @queue = CouchTap::OperationsQueue.new(100_000)
+    @metrics = CouchTap::Metrics.new
+    @executor = CouchTap::QueryExecutor.new('changes', @queue, @metrics, db: 'sqlite:/')
     @handler = CouchTap::DocumentHandler.new 'changes' do
       #nothing
     end
@@ -42,7 +45,7 @@ class DocumentHandlerTest < Test::Unit::TestCase
     end
     @handler.expects(:table).with(:items)
     doc = {'type' => 'Foo', '_id' => '1234'}
-    @handler.insert(doc)
+    @handler.insert(doc, @executor)
     assert_equal @handler.document, doc
   end
 
@@ -51,7 +54,7 @@ class DocumentHandlerTest < Test::Unit::TestCase
       table :items
     end
     @handler.expects(:table).with(:items)
-    @handler.delete('_id' => '1234')
+    @handler.delete({ '_id' => '1234' }, @executor)
     assert_equal @handler.id, '1234'
   end
 

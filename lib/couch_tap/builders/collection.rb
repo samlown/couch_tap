@@ -19,9 +19,9 @@ module CouchTap
         instance_eval(&block)
       end
 
-      def execute
+      def execute(operations_queue)
         @_tables.each do |table|
-          table.execute
+          table.execute(operations_queue)
         end
       end
 
@@ -29,6 +29,7 @@ module CouchTap
 
       def table(name, opts = {}, &block)
         source = parent.data[field.to_s] || []
+        source = [source] if source.is_a?(Hash)
         source.each do |item|
           options = opts.merge(:data => item)
           @_tables << Table.new(parent, name, options, &block)

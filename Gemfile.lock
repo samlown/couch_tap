@@ -1,48 +1,109 @@
+GIT
+  remote: https://github.com/cabify/logging-logstash.git
+  revision: 86ec96cad930aab8a9dd0a612d12494186ffd7cf
+  specs:
+    logging-logstash (0.2.1)
+      logging (>= 1.8.1)
+      logstash-logger (= 0.10.3)
+
 PATH
   remote: .
   specs:
-    couch_tap (0.1.0)
+    couch_tap (0.12.3)
       activesupport (~> 4.0)
-      couchrest (~> 1.1.3)
+      byebug (~> 11.0)
+      couchrest (~> 2.0)
+      dogstatsd-ruby
       httpclient (~> 2.6)
+      logging
+      retryable
       sequel (>= 4.36.0)
-      yajl-ruby (~> 1.1.0)
+      yajl-ruby
 
 GEM
   remote: https://rubygems.org/
   specs:
-    activesupport (4.2.7)
+    activesupport (4.2.11.1)
       i18n (~> 0.7)
-      json (~> 1.7, >= 1.7.7)
       minitest (~> 5.1)
       thread_safe (~> 0.3, >= 0.3.4)
       tzinfo (~> 1.1)
-    couchrest (1.1.3)
-      mime-types (~> 1.15)
-      multi_json (~> 1.0)
-      rest-client (~> 1.6.1)
-    httpclient (2.8.0)
-    i18n (0.7.0)
-    json (1.8.3)
-    metaclass (0.0.1)
-    mime-types (1.25.1)
-    minitest (5.9.0)
-    mocha (0.13.3)
+    addressable (2.5.2)
+      public_suffix (>= 2.0.2, < 4.0)
+    byebug (11.0.1)
+    codeclimate-test-reporter (1.0.8)
+      simplecov (<= 0.13)
+    concurrent-ruby (1.1.5)
+    couchrest (2.0.1)
+      httpclient (~> 2.8)
+      mime-types (>= 1.15)
+      multi_json (~> 1.7)
+    crack (0.4.3)
+      safe_yaml (~> 1.0.0)
+    docile (1.1.5)
+    dogstatsd-ruby (4.2.0)
+    hashdiff (0.3.7)
+    httpclient (2.8.3)
+    i18n (0.9.5)
+      concurrent-ruby (~> 1.0)
+    json (2.1.0)
+    little-plugger (1.1.4)
+    logging (2.2.2)
+      little-plugger (~> 1.1)
+      multi_json (~> 1.10)
+    logstash-event (1.2.02)
+    logstash-logger (0.10.3)
+      logstash-event (~> 1.2)
+      stud
+    metaclass (0.0.4)
+    mime-types (3.2.2)
+      mime-types-data (~> 3.2015)
+    mime-types-data (3.2019.0331)
+    minitest (5.11.3)
+    mocha (1.3.0)
       metaclass (~> 0.0.1)
-    multi_json (1.12.1)
-    rest-client (1.6.9)
-      mime-types (~> 1.16)
-    sequel (4.36.0)
-    sqlite3 (1.3.11)
-    thread_safe (0.3.5)
-    tzinfo (1.2.2)
+    multi_json (1.13.1)
+    power_assert (1.1.1)
+    public_suffix (2.0.5)
+    rake (12.3.0)
+    retryable (3.0.4)
+    safe_yaml (1.0.4)
+    sequel (5.19.0)
+    simplecov (0.13.0)
+      docile (~> 1.1.0)
+      json (>= 1.8, < 3)
+      simplecov-html (~> 0.10.0)
+    simplecov-html (0.10.2)
+    sqlite3 (1.3.13)
+    stud (0.0.23)
+    test-unit (3.2.7)
+      power_assert
+    thread_safe (0.3.6)
+    timecop (0.9.1)
+    tzinfo (1.2.5)
       thread_safe (~> 0.1)
-    yajl-ruby (1.1.0)
+    webmock (3.2.1)
+      addressable (>= 2.3.6)
+      crack (>= 0.3.2)
+      hashdiff
+    yajl-ruby (1.4.1)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
+  byebug (~> 11.0)
+  codeclimate-test-reporter (~> 1.0.0)
   couch_tap!
+  logging-logstash (= 0.2.1)!
   mocha
+  public_suffix (= 2.0.5)
+  rake
+  simplecov
   sqlite3
+  test-unit
+  timecop
+  webmock
+
+BUNDLED WITH
+   1.16.1

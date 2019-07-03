@@ -1,0 +1,23 @@
+sudo: required
+language: ruby
+rvm:
+  - 2.4
+  - 2.3
+services:
+  - docker
+env:
+  - COUCHDB_IMAGE=couchdb        # Couchdb 1.6
+matrix:
+  include:
+    - rvm: "2.4"
+      gemfile: gemfiles/Gemfile_2_4
+      services:
+        - docker
+      env: COUCHDB_IMAGE=couchdb
+addons:
+  code_climate:
+    repo_token: 0af68e84758ed2ea8d30808f64fbb6e086d006e0053be32ddbf8d4a7ff5d418b
+before_install:
+- docker run -d -p 5984:5984 $COUCHDB_IMAGE
+after_success:
+  - bundle exec codeclimate-test-reporter
